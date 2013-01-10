@@ -128,8 +128,7 @@ public class Appacitive {
 						reader.skipValue();
 					}
 					name = reader.nextName();
-					if (name.equals("sessionkey")
-							&& reader.peek() != JsonToken.NULL) {
+					if (name.equals("sessionkey") && reader.peek() != JsonToken.NULL) {
 						String sessionKey = reader.nextString();
 						Appacitive.this.mSessionId = sessionKey;
 					} else {
@@ -139,7 +138,6 @@ public class Appacitive {
 				reader.endObject();
 			}
 		};
-		// BackgroundTask.executeTask(backgroundTask);
 		backgroundTask.execute();
 	}
 

@@ -215,7 +215,7 @@ public class AppacitiveObject {
 						os.close();
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG","Request failed " + connection.getResponseMessage());
+							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							return null;
 						} else {
 							inputStream = connection.getInputStream();
@@ -326,7 +326,7 @@ public class AppacitiveObject {
 								appacitive.getEnvironment());
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG",
+							Log.w("TAG",
 									"Request failed "
 											+ connection.getResponseMessage());
 							return null;
@@ -376,15 +376,12 @@ public class AppacitiveObject {
 				}
 			};
 			deleteTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 		}
 	}
 
-	/**
-	 * 
-	 * @param objectIds
-	 * @param schemaName
-	 * @param callback
-	 */
 	public static void deleteObjectsWithIds(final ArrayList<String> objectIds, final String schemaName, final AppacitiveResponseCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive != null) {
@@ -411,7 +408,7 @@ public class AppacitiveObject {
 						os.close();
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG",
+							Log.w("TAG",
 									"Request failed "
 											+ connection.getResponseMessage());
 							return null;
@@ -463,6 +460,9 @@ public class AppacitiveObject {
 				}
 			};
 			deleteTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 		}
 
 	}
@@ -484,12 +484,12 @@ public class AppacitiveObject {
 						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG", "Request failed " + connection.getResponseMessage());
+							Log.w("TAG", "Request failed " + connection.getResponseMessage());
 							return null;
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(inputStream);
-							if (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD_MR1) {
+							if (Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1) {
 								JsonReader jsonReader = new JsonReader(reader);
 								jsonReader.beginObject();
 								String name;
@@ -519,9 +519,7 @@ public class AppacitiveObject {
 								JSONObject responseJsonObject;
 								try {
 									responseJsonObject = new JSONObject(buffer.toString());
-									Log.d("TAG", "The object is  ");
-									Log.d("TAG", responseJsonObject.getJSONObject("article").toString());
-									error = AppacitiveHelperMethods.checkForErrorInStatus(responseJsonObject);
+									error = AppacitiveHelperMethods.checkForErrorInStatus(responseJsonObject.getJSONObject("status"));
 									if(error == null) {
 										readArticle(responseJsonObject.getJSONObject("article"));
 									}
@@ -548,9 +546,191 @@ public class AppacitiveObject {
 				}
 			};
 			fetchTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 		}
 	}
 
+	public static void fetchObjectsWithIds(final ArrayList<String> ids, final String schemaName, final AppacitiveResponseCallback callback) {
+		final Appacitive appacitive = Appacitive.getInstance();
+		if(appacitive != null) {
+			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>(null) {
+				AppacitiveError error;
+
+				@Override
+				public Void run() throws AppacitiveException {
+					URL url;
+					try {
+						StringBuffer queryParams = null;
+						for(String id : ids) {
+							if(queryParams == null) {
+								queryParams = new StringBuffer();
+								queryParams.append(id);
+							} else{
+								queryParams.append("," + id);
+							}
+							
+						}
+						url = new URL(Constants.ARTICLE_URL + schemaName + "/multiget"+ "/" + queryParams);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+						InputStream inputStream;
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG", "Request failed " + connection.getResponseMessage());
+							return null;
+						} else {
+							inputStream = connection.getInputStream();
+							InputStreamReader reader = new InputStreamReader(inputStream);
+							if (Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1) {
+								JsonReader jsonReader = new JsonReader(reader);
+								jsonReader.beginObject();
+								String name;
+								while (jsonReader.hasNext()) {
+									if (jsonReader.peek() == null) {
+										jsonReader.skipValue();
+									}
+									name = jsonReader.nextName();
+									if (name.equals("article")
+											&& jsonReader.peek() != JsonToken.NULL) {
+									} else if (name.equals("status") && jsonReader.peek() != JsonToken.NULL) {
+										error = AppacitiveHelperMethods.checkForErrorInStatus(jsonReader);
+									} else {
+										jsonReader.skipValue();
+									}
+								}
+								jsonReader.endObject();
+								jsonReader.close();
+							} else {
+								BufferedReader bufferedReader = new BufferedReader(reader);
+								StringBuffer buffer = new StringBuffer();
+								String response;
+								while ((response = bufferedReader.readLine()) != null) {
+									buffer.append(response);
+								}
+								JSONObject responseJsonObject;
+								try {
+									responseJsonObject = new JSONObject(buffer.toString());
+									error = AppacitiveHelperMethods.checkForErrorInStatus(responseJsonObject.getJSONObject("status"));
+									if(error == null) {
+//										TODO : Ask ali whehter to return JSON Response or an arraylist of the apobject
+									}
+								} catch (JSONException e) {
+									e.printStackTrace();
+								}
+							}
+							inputStream.close();
+						}
+						if (callback != null) {
+							if (error == null) {
+								callback.onSucess();
+							} else {
+								callback.onFailure(error);
+							}
+						}
+
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					return null;
+				}
+			};
+			fetchTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+		}
+	}
+	
+//	public void searchAllObjects(final String schemaName , final AppacitiveResponseCallback callback) {
+//		final Appacitive appacitive = Appacitive.getInstance();
+//		if(appacitive != null) {
+//			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>(null) {
+//				AppacitiveError error;
+//
+//				@Override
+//				public Void run() throws AppacitiveException {
+//					URL url;
+//					try {
+//						url = new URL(Constants.ARTICLE_URL + schemaName + "/find/all"+ "/" );
+//						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+//						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+//						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+//						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+//						InputStream inputStream;
+//						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+//							Log.w("TAG", "Request failed " + connection.getResponseMessage());
+//							return null;
+//						} else {
+//							inputStream = connection.getInputStream();
+//							InputStreamReader reader = new InputStreamReader(inputStream);
+//							if (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD_MR1) {
+//								JsonReader jsonReader = new JsonReader(reader);
+//								jsonReader.beginObject();
+//								String name;
+//								while (jsonReader.hasNext()) {
+//									if (jsonReader.peek() == null) {
+//										jsonReader.skipValue();
+//									}
+//									name = jsonReader.nextName();
+//									if (name.equals("article")
+//											&& jsonReader.peek() != JsonToken.NULL) {
+//									} else if (name.equals("status") && jsonReader.peek() != JsonToken.NULL) {
+//										error = AppacitiveHelperMethods.checkForErrorInStatus(jsonReader);
+//									} else {
+//										jsonReader.skipValue();
+//									}
+//								}
+//								jsonReader.endObject();
+//								jsonReader.close();
+//							} else {
+//								BufferedReader bufferedReader = new BufferedReader(reader);
+//								StringBuffer buffer = new StringBuffer();
+//								String response;
+//								while ((response = bufferedReader.readLine()) != null) {
+//									buffer.append(response);
+//								}
+//								JSONObject responseJsonObject;
+//								try {
+//									responseJsonObject = new JSONObject(buffer.toString());
+//									error = AppacitiveHelperMethods.checkForErrorInStatus(responseJsonObject.getJSONObject("status"));
+//									if(error == null) {
+//									}
+//								} catch (JSONException e) {
+//									e.printStackTrace();
+//								}
+//							}
+//							inputStream.close();
+//						}
+//						if (callback != null) {
+//							if (error == null) {
+//								callback.onSucess();
+//							} else {
+//								callback.onFailure(error);
+//							}
+//						}
+//
+//					} catch (MalformedURLException e) {
+//						e.printStackTrace();
+//					} catch (IOException e) {
+//						e.printStackTrace();
+//					}
+//					return null;
+//				}
+//			};
+//			fetchTask.execute();
+//		} else {
+//			Log.w("Appacitive",
+//					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+//		}
+//		
+//		
+//	}
+	
 	private void readArticle(JsonReader jsonReader) throws IOException {
 		jsonReader.beginObject();
 		while (jsonReader.hasNext()) {
@@ -595,12 +775,11 @@ public class AppacitiveObject {
 	}
 
 	private void readArticle(JSONObject jsonObject) throws IOException,JSONException {
-		Log.d("TAG", "The object is ");
-		Log.d("TAG", jsonObject.toString());
 		this.mObjectId = jsonObject.getLong("__id");
 		this.mSchemaId = jsonObject.getLong("__schemaid");
 		this.mCreatedBy = jsonObject.getString("__createdby");
 		this.mLastModifiedBy = jsonObject.getString("__lastmodifiedby");
+//		TODO : Uncomment the mRevision number and after the revision number is provided by the service in the response
 		// this.mRevision = jsonObject.getLong("__revision");
 		try {
 			this.mUTCDateCreated = fromJsonResponse(jsonObject.getString("__utcdatecreated"));
@@ -609,12 +788,14 @@ public class AppacitiveObject {
 			e.printStackTrace();
 		}
 	}
+	
 
 	private Date fromJsonResponse(String dateString) throws ParseException {
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 		Date date = formatter.parse(dateString);
 		return date;
 	}
+	
 
 	@Override
 	public String toString() {
