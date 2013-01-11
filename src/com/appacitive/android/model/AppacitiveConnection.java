@@ -18,10 +18,12 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import android.os.Build;
 import android.util.JsonReader;
 import android.util.JsonToken;
 import android.util.Log;
+
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.AppacitiveUtility;
 import com.appacitive.android.util.Constants;
@@ -416,7 +418,7 @@ public class AppacitiveConnection {
 				}
 				private void readConnections(JSONArray jsonArray) {
 					// TODO Auto-generated method stub
-					jsonArray =
+//					jsonArray =
 				}
 
 			};
