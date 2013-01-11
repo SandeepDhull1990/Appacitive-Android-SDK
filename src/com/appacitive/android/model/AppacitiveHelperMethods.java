@@ -55,4 +55,35 @@ public class AppacitiveHelperMethods {
 		}
 		return null;
 	}
+	
+	public static AppacitivePagingInfo readPagingInfo (JsonReader reader) throws IOException{
+		AppacitivePagingInfo pagingInfo = new AppacitivePagingInfo();
+		reader.beginObject();
+		String name;
+		
+		while (reader.hasNext()) {
+			name = reader.nextName();
+			if (name.equals("pagenumber") && reader.peek() != JsonToken.NULL) {
+				pagingInfo.setPageNumber(reader.nextLong());
+			} else if(name.equals("pagesize") && reader.peek() != JsonToken.NULL) {
+				pagingInfo.setPageSize(reader.nextLong());
+			} else if(name.equals("totalrecords") && reader.peek() != JsonToken.NULL) {
+				pagingInfo.setTotalRecords(reader.nextLong());
+			} else {
+				reader.skipValue();
+			}
+		}
+		reader.endObject();
+		return pagingInfo;
+		
+	}
+	
+	public static AppacitivePagingInfo readPagingInfo (JSONObject object) throws JSONException {
+		AppacitivePagingInfo pagingInfo = new AppacitivePagingInfo();
+		pagingInfo.setPageNumber(object.getLong("pagenumber"));
+		pagingInfo.setPageSize(object.getLong("pagesize"));
+		pagingInfo.setTotalRecords(object.getLong("totalrecords"));
+		return pagingInfo;
+		
+	}
 }
