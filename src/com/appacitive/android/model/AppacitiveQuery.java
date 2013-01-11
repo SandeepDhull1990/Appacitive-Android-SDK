@@ -7,7 +7,7 @@ public class AppacitiveQuery {
 	
 	public static String queryForEqualCondition (String propertyName, String propertyValue) {
 		if(propertyName != null && propertyValue != null) {
-			String query = String.format("*%s == '%s'", propertyName, propertyValue);
+			String query = String.format("*%s=='%s'", propertyName, propertyValue);
 			return query;
 		}
 		return null;
@@ -15,7 +15,7 @@ public class AppacitiveQuery {
 	
 	public static String queryForEqualCondition (String propertyName, Date propertyValue) {
 		if(propertyName != null && propertyValue != null) {
-			String query = String.format("*%s == date('%s')", propertyName, propertyValue);
+			String query = String.format("*%s==date('%s')", propertyName, propertyValue);
 			return query;
 		}
 		return null;
@@ -31,7 +31,7 @@ public class AppacitiveQuery {
 	
 	public static String queryForGreaterThanCondition (String propertyName, String propertyValue) {
 		if(propertyName != null && propertyValue != null) {
-			String query = String.format("*%s > '%s'", propertyName, propertyValue);
+			String query = String.format("*%s>'%s'", propertyName, propertyValue);
 			return query;
 		}
 		return null;
@@ -39,7 +39,7 @@ public class AppacitiveQuery {
 	
 	public static String queryForLessThanCondition (String propertyName, String propertyValue) {
 		if(propertyName != null && propertyValue != null) {
-			String query = String.format("*%s < '%s'", propertyName, propertyValue);
+			String query = String.format("*%s<'%s'", propertyName, propertyValue);
 			return query;
 		}
 		return null;

@@ -646,90 +646,97 @@ public class AppacitiveObject {
 		}
 	}
 	
-//	public void searchAllObjects(final String schemaName , final AppacitiveResponseCallback callback) {
-//		final Appacitive appacitive = Appacitive.getInstance();
-//		if(appacitive != null) {
-//			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>(null) {
-//				AppacitiveError error;
-//
-//				@Override
-//				public Void run() throws AppacitiveException {
-//					URL url;
-//					try {
-//						url = new URL(Constants.ARTICLE_URL + schemaName + "/find/all"+ "/" );
-//						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-//						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
-//						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
-//						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
-//						InputStream inputStream;
-//						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-//							Log.w("TAG", "Request failed " + connection.getResponseMessage());
-//							return null;
-//						} else {
-//							inputStream = connection.getInputStream();
-//							InputStreamReader reader = new InputStreamReader(inputStream);
-//							if (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD_MR1) {
-//								JsonReader jsonReader = new JsonReader(reader);
-//								jsonReader.beginObject();
-//								String name;
-//								while (jsonReader.hasNext()) {
-//									if (jsonReader.peek() == null) {
-//										jsonReader.skipValue();
-//									}
-//									name = jsonReader.nextName();
-//									if (name.equals("article")
-//											&& jsonReader.peek() != JsonToken.NULL) {
-//									} else if (name.equals("status") && jsonReader.peek() != JsonToken.NULL) {
-//										error = AppacitiveHelperMethods.checkForErrorInStatus(jsonReader);
-//									} else {
-//										jsonReader.skipValue();
-//									}
-//								}
-//								jsonReader.endObject();
-//								jsonReader.close();
-//							} else {
-//								BufferedReader bufferedReader = new BufferedReader(reader);
-//								StringBuffer buffer = new StringBuffer();
-//								String response;
-//								while ((response = bufferedReader.readLine()) != null) {
-//									buffer.append(response);
-//								}
-//								JSONObject responseJsonObject;
-//								try {
-//									responseJsonObject = new JSONObject(buffer.toString());
-//									error = AppacitiveHelperMethods.checkForErrorInStatus(responseJsonObject.getJSONObject("status"));
-//									if(error == null) {
-//									}
-//								} catch (JSONException e) {
-//									e.printStackTrace();
-//								}
-//							}
-//							inputStream.close();
-//						}
-//						if (callback != null) {
-//							if (error == null) {
-//								callback.onSucess();
-//							} else {
-//								callback.onFailure(error);
-//							}
-//						}
-//
-//					} catch (MalformedURLException e) {
-//						e.printStackTrace();
-//					} catch (IOException e) {
-//						e.printStackTrace();
-//					}
-//					return null;
-//				}
-//			};
-//			fetchTask.execute();
-//		} else {
-//			Log.w("Appacitive",
-//					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-//		}
-//		
-//		
-//	}
+	public static void searchAllObjects(String schemaName, final AppacitiveResponseCallback callback) {
+		searchObjects(schemaName, null, callback);
+	}
+	
+	public static void searchObjects(final String schemaName, final String filter, final AppacitiveResponseCallback callback) {
+		final Appacitive appacitive = Appacitive.getInstance();
+		if(appacitive != null) {
+			BackgroundTask<Void> searchTask = new BackgroundTask<Void>(null) {
+				AppacitiveError error;
+
+				@Override
+				public Void run() throws AppacitiveException {
+					URL url;
+					String urlString = Constants.ARTICLE_URL + schemaName + "/find/all";
+					if( filter != null ) {
+						urlString = urlString + "?" + filter;
+					}
+					try {
+						url = new URL(urlString);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+						InputStream inputStream;
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG", "Request failed " + connection.getResponseMessage());
+							return null;
+						} else {
+							inputStream = connection.getInputStream();
+							InputStreamReader reader = new InputStreamReader(inputStream);
+							if (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD_MR1) {
+								JsonReader jsonReader = new JsonReader(reader);
+								jsonReader.beginObject();
+								String name;
+								while (jsonReader.hasNext()) {
+									if (jsonReader.peek() == null) {
+										jsonReader.skipValue();
+									}
+									name = jsonReader.nextName();
+									if (name.equals("articles") && jsonReader.peek() != JsonToken.NULL) {
+									} else if (name.equals("status") && jsonReader.peek() != JsonToken.NULL) {
+										error = AppacitiveHelperMethods.checkForErrorInStatus(jsonReader);
+									} else {
+										jsonReader.skipValue();
+									}
+								}
+								jsonReader.endObject();
+								jsonReader.close();
+							} else {
+								BufferedReader bufferedReader = new BufferedReader(reader);
+								StringBuffer buffer = new StringBuffer();
+								String response;
+								while ((response = bufferedReader.readLine()) != null) {
+									buffer.append(response);
+								}
+								Log.d("TAG", "The response object is ");
+								Log.d("TAG", " " + buffer.toString());
+								JSONObject responseJsonObject;
+								try {
+									responseJsonObject = new JSONObject(buffer.toString());
+									error = AppacitiveHelperMethods.checkForErrorInStatus(responseJsonObject.getJSONObject("status"));
+									if(error == null) {
+//										TODO: Object Read Successully Create a list of all the articles
+									}
+								} catch (JSONException e) {
+									e.printStackTrace();
+								}
+							}
+							inputStream.close();
+						}
+						if (callback != null) {
+							if (error == null) {
+								callback.onSucess();
+							} else {
+								callback.onFailure(error);
+							}
+						}
+
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					return null;
+				}
+			};
+			searchTask.execute();
+		} else {
+			Log.w("Appacitive","Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+		}
+	}
 	
 	private void readArticle(JsonReader jsonReader) throws IOException {
 		jsonReader.beginObject();
