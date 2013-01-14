@@ -4,11 +4,11 @@ import android.os.AsyncTask;
 
 abstract class BackgroundTask<T> extends AsyncTask<Void, Void, Void>
 {
-  private AppacitiveResponseCallback callback;
+  private AppacitiveCallback callback;
   private T result;
   private AppacitiveException exception;
 
-  BackgroundTask(AppacitiveResponseCallback theCallback)
+  BackgroundTask(AppacitiveCallback theCallback)
   {
     this.result = null;
     this.exception = null;

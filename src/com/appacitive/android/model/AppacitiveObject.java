@@ -202,7 +202,7 @@ public class AppacitiveObject {
 	 * the properties will be updated and the success callback will be invoked.
 	 * If not the failure callback is invoked.
 	 */
-	public void saveObject(final AppacitiveResponseCallback callback) {
+	public void saveObject(final AppacitiveCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 
 		if (appacitive != null) {
@@ -273,7 +273,7 @@ public class AppacitiveObject {
 						}
 						if (callback != null) {
 							if (error == null) {
-								callback.onSucess();
+								callback.onSuccess();
 							} else {
 								callback.onFailure(error);
 							}
@@ -333,7 +333,7 @@ public class AppacitiveObject {
 	 * callback is invoked.
 	 */
 	public void deleteObjectWithConnections(final boolean deleteConnections,
-			final AppacitiveResponseCallback callback) {
+			final AppacitiveCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive != null) {
 			BackgroundTask<Void> deleteTask = new BackgroundTask<Void>(null) {
@@ -386,7 +386,7 @@ public class AppacitiveObject {
 						}
 						if (callback != null) {
 							if (error == null) {
-								callback.onSucess();
+								callback.onSuccess();
 							} else {
 								callback.onFailure(error);
 							}
@@ -402,13 +402,12 @@ public class AppacitiveObject {
 			};
 			deleteTask.execute();
 		} else {
-			Log.w("Appacitive",
-					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			Log.w("Appacitive","Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 		}
 	}
 
 	public static void deleteObjectsWithIds(final ArrayList<String> objectIds,
-			final String schemaName, final AppacitiveResponseCallback callback) {
+			final String schemaName, final AppacitiveCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive != null) {
 			BackgroundTask<Void> deleteTask = new BackgroundTask<Void>(null) {
@@ -476,7 +475,7 @@ public class AppacitiveObject {
 						}
 						if (callback != null) {
 							if (error == null) {
-								callback.onSucess();
+								callback.onSuccess();
 							} else {
 								callback.onFailure(error);
 							}
@@ -501,7 +500,7 @@ public class AppacitiveObject {
 
 	}
 
-	public void fetchObject(final AppacitiveResponseCallback callback) {
+	public void fetchObject(final AppacitiveCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive != null) {
 			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>(null) {
@@ -582,7 +581,7 @@ public class AppacitiveObject {
 						}
 						if (callback != null) {
 							if (error == null) {
-								callback.onSucess();
+								callback.onSuccess();
 							} else {
 								callback.onFailure(error);
 							}

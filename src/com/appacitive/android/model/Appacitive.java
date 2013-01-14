@@ -12,34 +12,33 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
-import android.content.Intent;
 import android.util.JsonReader;
 import android.util.JsonToken;
-import android.util.Log;
 
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 
 public class Appacitive {
 
-	private Context mContext;
+//	Context will be used if we broadcast that the session is created
+//	private Context mContext;
 	private String mSessionId;
 	private String mApiKey;
 	private String mDeploymentId;
-	private AppacitiveResponseCallback mCallBack;
+	private AppacitiveCallback mCallBack;
 	private boolean enableDebugForEachRequest;
 	private boolean enableLiveEnvironment;
 	static private Appacitive mSharedInstance;
 
 	private Appacitive(Context context, String apiKey, String deploymentId) {
 		this.mApiKey = apiKey;
-		this.mContext = context;
+//		this.mContext = context;
 		this.mDeploymentId = deploymentId;
 		fetchSession(apiKey, deploymentId);
 	}
 
 	public static void initializeAppacitive(Context context, String apiKey,
-			String deploymentId, AppacitiveResponseCallback callback) {
+			String deploymentId, AppacitiveCallback callback) {
 		if (apiKey != null && deploymentId != null && !apiKey.isEmpty()
 				&& !deploymentId.isEmpty()) {
 			mSharedInstance = new Appacitive(context, apiKey, deploymentId);
@@ -86,7 +85,7 @@ public class Appacitive {
 						if (error != null) {
 							mCallBack.onFailure(error);
 						} else {
-							mCallBack.onSucess();
+							mCallBack.onSuccess();
 						}
 					}
 				} catch (MalformedURLException e) {
