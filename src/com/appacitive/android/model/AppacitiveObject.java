@@ -51,6 +51,11 @@ public class AppacitiveObject {
 	 * @param value
 	 *            The Value which is to be set
 	 */
+	
+	public AppacitiveObject(String schemaType) {
+		this.mSchemaType = schemaType;
+	}
+	
 	public void addProperty(String key, Object value) {
 		if (this.mProperties == null) {
 			this.mProperties = new HashMap<String, Object>();
@@ -425,17 +430,12 @@ public class AppacitiveObject {
 						HttpURLConnection connection = (HttpURLConnection) url
 								.openConnection();
 						connection
-								.setRequestMethod(AppacitiveRequestMethods.POST
-										.requestMethod());
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
-						connection.setRequestProperty("Content-Type",
-								"application/json");
+								.setRequestMethod(AppacitiveRequestMethods.POST.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+						connection.setRequestProperty("Content-Type","application/json");
 						connection.setRequestProperty("Content-Length",
-								Integer.toString(((requestObject.toString())
-										.length())));
+								Integer.toString(((requestObject.toString()).length())));
 						OutputStream os = connection.getOutputStream();
 						os.write((requestObject.toString()).getBytes());
 						os.close();
@@ -510,23 +510,14 @@ public class AppacitiveObject {
 				public Void run() throws AppacitiveException {
 					URL url;
 					try {
-						url = new URL(Constants.ARTICLE_URL
-								+ AppacitiveObject.this.mSchemaType + "/"
-								+ AppacitiveObject.this.mObjectId);
-						HttpURLConnection connection = (HttpURLConnection) url
-								.openConnection();
-						connection
-								.setRequestMethod(AppacitiveRequestMethods.GET
-										.requestMethod());
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
+						url = new URL(Constants.ARTICLE_URL + AppacitiveObject.this.mSchemaType + "/" + AppacitiveObject.this.mObjectId);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.w("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							return null;
 						} else {
 							inputStream = connection.getInputStream();
@@ -541,13 +532,10 @@ public class AppacitiveObject {
 										jsonReader.skipValue();
 									}
 									name = jsonReader.nextName();
-									if (name.equals("article")
-											&& jsonReader.peek() != JsonToken.NULL) {
+									if (name.equals("article") && jsonReader.peek() != JsonToken.NULL) {
 										readArticle(jsonReader);
-									} else if (name.equals("status")
-											&& jsonReader.peek() != JsonToken.NULL) {
-										error = AppacitiveHelperMethods
-												.checkForErrorInStatus(jsonReader);
+									} else if (name.equals("status") && jsonReader.peek() != JsonToken.NULL) {
+										error = AppacitiveHelperMethods.checkForErrorInStatus(jsonReader);
 									} else {
 										jsonReader.skipValue();
 									}
@@ -555,8 +543,7 @@ public class AppacitiveObject {
 								jsonReader.endObject();
 								jsonReader.close();
 							} else {
-								BufferedReader bufferedReader = new BufferedReader(
-										reader);
+								BufferedReader bufferedReader = new BufferedReader(reader);
 								StringBuffer buffer = new StringBuffer();
 								String response;
 								while ((response = bufferedReader.readLine()) != null) {
@@ -564,14 +551,10 @@ public class AppacitiveObject {
 								}
 								JSONObject responseJsonObject;
 								try {
-									responseJsonObject = new JSONObject(
-											buffer.toString());
-									error = AppacitiveHelperMethods
-											.checkForErrorInStatus(responseJsonObject
-													.getJSONObject("status"));
+									responseJsonObject = new JSONObject(buffer.toString());
+									error = AppacitiveHelperMethods.checkForErrorInStatus(responseJsonObject.getJSONObject("status"));
 									if (error == null) {
-										readArticle(responseJsonObject
-												.getJSONObject("article"));
+										readArticle(responseJsonObject.getJSONObject("article"));
 									}
 								} catch (JSONException e) {
 									e.printStackTrace();

@@ -20,13 +20,19 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.os.Build;
-import android.util.JsonReader;
-import android.util.JsonToken;
 import android.util.Log;
 
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.AppacitiveUtility;
 import com.appacitive.android.util.Constants;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+
+/**
+ * @author Sandeep Dhull This class represents a connection (relation) between
+ *         two articles.
+ * 
+ */
 
 public class AppacitiveConnection {
 
@@ -46,10 +52,21 @@ public class AppacitiveConnection {
 	private HashMap<String, Object> mAttributes;
 	private List<String> mTags;
 
+	/**
+	 * Instantiate an AppacitiveConnection with a specified Relation Type
+	 * 
+	 * @param relationType
+	 *            Specified Relation type specified in the schema
+	 */
 	public AppacitiveConnection(String relationType) {
 		this.mRelationType = relationType;
 	}
 
+	/**
+	 * 
+	 * @param key
+	 * @param value
+	 */
 	public void addAttribute(String key, Object value) {
 		if (this.mAttributes == null) {
 			this.mAttributes = new HashMap<String, Object>();
@@ -62,98 +79,6 @@ public class AppacitiveConnection {
 			this.mTags = new ArrayList<String>();
 		}
 		this.mTags.add(tag);
-	}
-
-	public String getCreatedBy() {
-		return mCreatedBy;
-	}
-
-	public void setCreatedBy(String createdBy) {
-		this.mCreatedBy = createdBy;
-	}
-
-	public long getArticleAId() {
-		return mArticleAId;
-	}
-
-	public void setArticleAId(long articleAId) {
-		this.mArticleAId = articleAId;
-	}
-
-	public long getArticleBId() {
-		return mArticleBId;
-	}
-
-	public void setArticleBId(long articleBId) {
-		this.mArticleBId = articleBId;
-	}
-
-	public long getConnectionId() {
-		return mConnectionId;
-	}
-
-	public void setConnectionId(long objectId) {
-		this.mConnectionId = objectId;
-	}
-
-	public String getLabelA() {
-		return mLabelA;
-	}
-
-	public void setLabelA(String labelA) {
-		this.mLabelA = labelA;
-	}
-
-	public String getLabelB() {
-		return mLabelB;
-	}
-
-	public void setLabelB(String labelB) {
-		this.mLabelB = labelB;
-	}
-
-	public long getRelationId() {
-		return mRelationId;
-	}
-
-	public void setRelationId(long relationId) {
-		this.mRelationId = relationId;
-	}
-
-	public String getRelationType() {
-		return mRelationType;
-	}
-
-	public String getLastModifiedBy() {
-		return mLastModifiedBy;
-	}
-
-	public void setLastModifiedBy(String lastModifiedBy) {
-		this.mLastModifiedBy = lastModifiedBy;
-	}
-
-	public Date getUtcDateCreated() {
-		return mUtcDateCreated;
-	}
-
-	public void setUtcDateCreated(Date utcDateCreated) {
-		this.mUtcDateCreated = utcDateCreated;
-	}
-
-	public Date getUtcLastModifiedDate() {
-		return mUtcLastModifiedDate;
-	}
-
-	public void setUtcLastModifiedDate(Date utcLastModifiedDate) {
-		this.mUtcLastModifiedDate = utcLastModifiedDate;
-	}
-
-	public long getRevision() {
-		return mRevision;
-	}
-
-	public void setRevision(long revision) {
-		this.mRevision = revision;
 	}
 
 	// create connection
@@ -172,65 +97,27 @@ public class AppacitiveConnection {
 					URL url;
 					JSONObject requestParams = null;
 					try {
-						url = new URL(Constants.CONNECTION_URL
-								+ AppacitiveConnection.this.mRelationType);
-						requestParams = AppacitiveConnection.this
-								.createRequestParams();
-						HttpURLConnection connection = (HttpURLConnection) url
-								.openConnection();
-						connection
-								.setRequestMethod(AppacitiveRequestMethods.PUT
-										.requestMethod());
-						connection.setRequestProperty("Content-Type",
-								"application/json");
-						connection.setRequestProperty("Content-Length",
-								Integer.toString(((requestParams.toString())
-										.length())));
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
+						url = new URL(Constants.CONNECTION_URL+ AppacitiveConnection.this.mRelationType);
+						requestParams = AppacitiveConnection.this.createRequestParams();
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.PUT.requestMethod());
+						connection.setRequestProperty("Content-Type","application/json");
+						connection.setRequestProperty("Content-Length",Integer.toString(((requestParams.toString()).length())));
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
 						connection.setDoOutput(true);
 						OutputStream os = connection.getOutputStream();
 						os.write((requestParams.toString()).getBytes());
 						os.close();
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.d("TAG","Request failed " + connection.getResponseMessage());
 							return null;
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							if (Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1) {
-								JsonReader jsonReader = new JsonReader(reader);
-								readResponse(jsonReader);
-							} else {
-								BufferedReader bufferedReader = new BufferedReader(
-										reader);
-								StringBuffer buffer = new StringBuffer();
-								String response;
-								while ((response = bufferedReader.readLine()) != null) {
-									buffer.append(response);
-								}
-								JSONObject responseJsonObject;
-								try {
-									responseJsonObject = new JSONObject(
-											buffer.toString());
-									JSONObject statusObject = responseJsonObject
-											.getJSONObject("status");
-									appacitiveError = AppacitiveHelperMethods
-											.checkForErrorInStatus(statusObject);
-									if (appacitiveError == null) {
-										readConnection(responseJsonObject
-												.getJSONObject("connection"));
-									}
-								} catch (JSONException e) {
-									e.printStackTrace();
-								}
-							}
+							InputStreamReader reader = new InputStreamReader(inputStream);
+							JsonReader jsonReader = new JsonReader(reader);
+							readResponse(jsonReader);
 							inputStream.close();
 						}
 						if (callback != null) {
@@ -912,6 +799,98 @@ public class AppacitiveConnection {
 				"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 		Date date = formatter.parse(dateString);
 		return date;
+	}
+
+	public String getCreatedBy() {
+		return mCreatedBy;
+	}
+
+	public void setCreatedBy(String createdBy) {
+		this.mCreatedBy = createdBy;
+	}
+
+	public long getArticleAId() {
+		return mArticleAId;
+	}
+
+	public void setArticleAId(long articleAId) {
+		this.mArticleAId = articleAId;
+	}
+
+	public long getArticleBId() {
+		return mArticleBId;
+	}
+
+	public void setArticleBId(long articleBId) {
+		this.mArticleBId = articleBId;
+	}
+
+	public long getConnectionId() {
+		return mConnectionId;
+	}
+
+	public void setConnectionId(long objectId) {
+		this.mConnectionId = objectId;
+	}
+
+	public String getLabelA() {
+		return mLabelA;
+	}
+
+	public void setLabelA(String labelA) {
+		this.mLabelA = labelA;
+	}
+
+	public String getLabelB() {
+		return mLabelB;
+	}
+
+	public void setLabelB(String labelB) {
+		this.mLabelB = labelB;
+	}
+
+	public long getRelationId() {
+		return mRelationId;
+	}
+
+	public void setRelationId(long relationId) {
+		this.mRelationId = relationId;
+	}
+
+	public String getRelationType() {
+		return mRelationType;
+	}
+
+	public String getLastModifiedBy() {
+		return mLastModifiedBy;
+	}
+
+	public void setLastModifiedBy(String lastModifiedBy) {
+		this.mLastModifiedBy = lastModifiedBy;
+	}
+
+	public Date getUtcDateCreated() {
+		return mUtcDateCreated;
+	}
+
+	public void setUtcDateCreated(Date utcDateCreated) {
+		this.mUtcDateCreated = utcDateCreated;
+	}
+
+	public Date getUtcLastModifiedDate() {
+		return mUtcLastModifiedDate;
+	}
+
+	public void setUtcLastModifiedDate(Date utcLastModifiedDate) {
+		this.mUtcLastModifiedDate = utcLastModifiedDate;
+	}
+
+	public long getRevision() {
+		return mRevision;
+	}
+
+	public void setRevision(long revision) {
+		this.mRevision = revision;
 	}
 
 	@Override
