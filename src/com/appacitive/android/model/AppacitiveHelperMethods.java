@@ -1,13 +1,14 @@
 package com.appacitive.android.model;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.util.JsonReader;
 import android.util.JsonToken;
-import android.util.Log;
 
 public class AppacitiveHelperMethods {
 
@@ -41,6 +42,21 @@ public class AppacitiveHelperMethods {
 			return appacitiveError;
 		}
 		return null;
+	}
+	
+	public static AppacitiveError checkForErrorInStatus(Map<String,Object> response) {
+		AppacitiveError error = new AppacitiveError();
+		Map<String,Object> statusMap = (Map<String,Object>)response.get("status");
+		String code = (String)statusMap.get("code");
+		if(code.equals("200")) {
+			return null;
+		}
+		error.setStatusCode(code);
+		error.setMessage((String)statusMap.get("message"));
+		error.setReferenceId((String)statusMap.get("referenceid"));
+		error.setVersion((String)statusMap.get("version"));
+		error.setAdditionalMessages((ArrayList<String>)statusMap.get("additionalmessages"));
+		return error;
 	}
 
 	public static AppacitiveError checkForErrorInStatus(com.google.gson.stream.JsonReader reader) throws IOException {

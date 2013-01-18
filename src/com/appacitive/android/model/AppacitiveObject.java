@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,6 +29,8 @@ import android.util.Log;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.AppacitiveUtility;
 import com.appacitive.android.util.Constants;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 // TODO : Do the proper Documentation
 public class AppacitiveObject {
@@ -586,7 +590,7 @@ public class AppacitiveObject {
 	}
 
 	public static void fetchObjectsWithIds(final ArrayList<String> ids,
-			final String schemaName, final FetchCallback callback) {
+			final String schemaName, final AppacitiveFetchCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive != null) {
 			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>(null) {
@@ -634,25 +638,16 @@ public class AppacitiveObject {
 							while ((response = bufferedReader.readLine()) != null) {
 								buffer.append(response);
 							}
-							JSONObject responseJsonObject;
-							try {
-								responseJsonObject = new JSONObject(
-										buffer.toString());
-								error = AppacitiveHelperMethods
-										.checkForErrorInStatus(responseJsonObject
-												.getJSONObject("status"));
-								// TODO : Ask ali whehter to return JSON
-								// Response or an arraylist of the
-								// apobject
-								if (callback != null) {
-									if (error == null) {
-										callback.onSuccess(responseJsonObject);
-									} else {
-										callback.onFailure(error);
-									}
+							Gson gson = new Gson();
+							Type typeOfClass = new TypeToken<Map<String,Object>>(){}.getType();
+							Map<String, Object> responseMap = gson.fromJson(buffer.toString(), typeOfClass);
+							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
+							if (callback != null) {
+								if (error == null) {
+									callback.onSuccess(responseMap);
+								} else {
+									callback.onFailure(error);
 								}
-							} catch (JSONException e) {
-								e.printStackTrace();
 							}
 						}
 						inputStream.close();
@@ -672,12 +667,12 @@ public class AppacitiveObject {
 	}
 
 	public static void searchAllObjects(String schemaName,
-			final FetchCallback callback) {
+			final AppacitiveFetchCallback callback) {
 		searchObjects(schemaName, null, callback);
 	}
 
 	public static void searchObjects(final String schemaName,
-			final String filter, final FetchCallback callback) {
+			final String filter, final AppacitiveFetchCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive != null) {
 			BackgroundTask<Void> searchTask = new BackgroundTask<Void>(null) {
@@ -721,28 +716,19 @@ public class AppacitiveObject {
 							while ((response = bufferedReader.readLine()) != null) {
 								buffer.append(response);
 							}
-							JSONObject responseJsonObject;
-							try {
-								responseJsonObject = new JSONObject(
-										buffer.toString());
-								error = AppacitiveHelperMethods
-										.checkForErrorInStatus(responseJsonObject
-												.getJSONObject("status"));
-								// One question whether the paging is to be
-								// handled by the api or the developer
-								if (callback != null) {
-									if (error == null) {
-										callback.onSuccess(responseJsonObject);
-									} else {
-										callback.onFailure(error);
-									}
+							Gson gson = new Gson();
+							Type typeOfClass = new TypeToken<Map<String,Object>>(){}.getType();
+							Map<String, Object> responseMap = gson.fromJson(buffer.toString(), typeOfClass);
+							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
+							if (callback != null) {
+								if (error == null) {
+									callback.onSuccess(responseMap);
+								} else {
+									callback.onFailure(error);
 								}
-							} catch (JSONException e) {
-								e.printStackTrace();
 							}
 							inputStream.close();
 						}
-
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
