@@ -31,11 +31,14 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
 /**
- * @author Sandeep Dhull This class represents a connection (relation) between
+ * @author Sandeep Dhull 
+ * 		This class represents a connection (relation) between
  *         two articles.
  * 
  */
 
+//TODO : 1: Fix the null values in Error object
+//TODO : 2: Implement a strong checking, so that only valid network request could be made.
 public class AppacitiveConnection {
 
 	private String mCreatedBy;
@@ -114,7 +117,9 @@ public class AppacitiveConnection {
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.d("TAG","Request failed " + connection.getResponseMessage());
-							return null;
+							appacitiveError = new AppacitiveError();
+							appacitiveError.setStatusCode(connection.getResponseCode()+"");
+							appacitiveError.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(inputStream);
@@ -200,7 +205,9 @@ public class AppacitiveConnection {
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.w("TAG", "Request failed " + connection.getResponseMessage());
-							return null;
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode()+"");
+							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(inputStream);
@@ -237,8 +244,7 @@ public class AppacitiveConnection {
 		deleteConnections(connectionsIds, relationType, null);
 	}
 
-	public static void deleteConnections(
-			final ArrayList<String> connectionsIds, final String relationType,
+	public static void deleteConnections(final ArrayList<String> connectionsIds, final String relationType,
 			final AppacitiveCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive != null) {
@@ -266,7 +272,9 @@ public class AppacitiveConnection {
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.w("TAG","Request failed " + connection.getResponseMessage());
-							return null;
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode()+"");
+							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(inputStream);
@@ -322,7 +330,9 @@ public class AppacitiveConnection {
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.d("TAG","Request failed " + connection.getResponseMessage());
-							return null;
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode()+"");
+							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(inputStream);
@@ -363,8 +373,7 @@ public class AppacitiveConnection {
 			};
 			fetchTask.execute();
 		} else {
-			Log.w("Appacitive",
-					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			Log.w("Appacitive", "Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 		}
 
 	}
@@ -383,6 +392,7 @@ public class AppacitiveConnection {
 			if (callback != null) {
 				callback.onFailure(error);
 			}
+			return;
 		}
 
 		final Appacitive appacitive = Appacitive.getInstance();
@@ -410,9 +420,12 @@ public class AppacitiveConnection {
 						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
 						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
 						InputStream inputStream;
+						Map<String, Object> responseMap = null;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.w("TAG","Request failed " + connection.getResponseMessage());
-							return null;
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode()+"");
+							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(inputStream);
@@ -424,16 +437,16 @@ public class AppacitiveConnection {
 							}
 							Gson gson = new Gson();
 							Type typeOfClass = new TypeToken<Map<String,Object>>(){}.getType();
-							Map<String, Object> responseMap = gson.fromJson(buffer.toString(), typeOfClass);
+							responseMap = gson.fromJson(buffer.toString(), typeOfClass);
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
-							if (callback != null) {
-								if (error == null) {
-									callback.onSuccess(responseMap);
-								} else {
-									callback.onFailure(error);
-								}
-							}
 							inputStream.close();
+						}
+						if (callback != null) {
+							if (error == null) {
+								callback.onSuccess(responseMap);
+							} else {
+								callback.onFailure(error);
+							}
 						}
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
@@ -478,10 +491,12 @@ public class AppacitiveConnection {
 						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
 						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
 						InputStream inputStream;
-
+						Map<String, Object> responseMap = null;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.w("TAG", "Request failed " + connection.getResponseMessage());
-							return null;
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode()+"");
+							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(inputStream);
@@ -493,16 +508,16 @@ public class AppacitiveConnection {
 							}
 							Gson gson = new Gson();
 							Type typeOfClass = new TypeToken<Map<String,Object>>(){}.getType();
-							Map<String, Object> responseMap = gson.fromJson(buffer.toString(), typeOfClass);
+							responseMap = gson.fromJson(buffer.toString(), typeOfClass);
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
-							if (callback != null) {
-								if (error == null) {
-									callback.onSuccess(responseMap);
-								} else {
-									callback.onFailure(error);
-								}
-							}
 							inputStream.close();
+						}
+						if (callback != null) {
+							if (error == null) {
+								callback.onSuccess(responseMap);
+							} else {
+								callback.onFailure(error);
+							}
 						}
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
@@ -611,13 +626,12 @@ public class AppacitiveConnection {
 		requestParams.put("__endpointa", endPointA);
 		requestParams.put("__endpointb", endPointB);
 		Gson gson = new Gson();
-		String requestString = gson.toJson(requestParams);
-		return requestString;
+		String requestJsonString = gson.toJson(requestParams);
+		return requestJsonString;
 	}
 
 	private Date fromJsonResponse(String dateString) throws ParseException {
-		SimpleDateFormat formatter = new SimpleDateFormat(
-				"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 		Date date = formatter.parse(dateString);
 		return date;
 	}

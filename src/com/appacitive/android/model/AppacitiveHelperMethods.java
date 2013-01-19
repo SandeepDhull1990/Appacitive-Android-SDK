@@ -44,9 +44,15 @@ public class AppacitiveHelperMethods {
 		return null;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static AppacitiveError checkForErrorInStatus(Map<String,Object> response) {
 		AppacitiveError error = new AppacitiveError();
-		Map<String,Object> statusMap = (Map<String,Object>)response.get("status");
+		Map<String,Object> statusMap ;
+		if(response.containsKey("status")) {
+			statusMap = (Map<String,Object>)response.get("status");
+		} else {
+			statusMap = response;
+		}
 		String code = (String)statusMap.get("code");
 		if(code.equals("200")) {
 			return null;
