@@ -15,8 +15,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
-import android.util.JsonReader;
-import android.util.JsonToken;
 import android.util.Log;
 
 import com.appacitive.android.util.AppacitiveRequestMethods;
@@ -29,6 +27,7 @@ public class Appacitive {
 	// Context will be used if we broadcast that the session is created
 	// private Context mContext;
 	private String mSessionId;
+//	The api is used to refresh the session..
 	private String mApiKey;
 	private String mDeploymentId;
 	private AppacitiveCallback mCallBack;
