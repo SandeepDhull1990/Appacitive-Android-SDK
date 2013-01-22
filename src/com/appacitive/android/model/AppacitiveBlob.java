@@ -27,7 +27,7 @@ public class AppacitiveBlob {
 			BackgroundTask<Void> saveTask = new BackgroundTask<Void>(null) {
 
 				@Override
-				public Void run() throws AppacitiveException {
+				public Void run()  {
 					String uploadFile = path + fileName;
 					String actionUrl = Constants.FILE_UPLOAD_URL;
 					final String end = "\r\n";
@@ -105,7 +105,7 @@ public class AppacitiveBlob {
 			BackgroundTask<Void> saveTask = new BackgroundTask<Void>(null) {
 
 				@Override
-				public Void run() throws AppacitiveException {
+				public Void run()  {
 					try {
 						URL url = new URL(fileUrl);
 						HttpURLConnection connection = (HttpURLConnection) url

@@ -1,7 +1,16 @@
 package com.appacitive.android.model;
 
+/**
+ * Posible distance metrics.
+ */
 public enum AppacitiveDistanceMetrics {
+	/**
+	 * Kilometers metrics.
+	 */
 	KILOMETERS("km"),
+	/**
+	 * Mile metrics.
+	 */
 	MILES("m");
 	
 	private final String mDistanceMetrics;

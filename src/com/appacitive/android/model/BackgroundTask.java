@@ -5,47 +5,35 @@ import android.os.AsyncTask;
 import com.appacitive.android.callbacks.AppacitiveCallback;
 
 //TODO : Rethink this class Design
-abstract class BackgroundTask<T> extends AsyncTask<Void, Void, Void>
-{
-  private AppacitiveCallback callback;
-  private T result;
-  private AppacitiveException exception;
+abstract class BackgroundTask<T> extends AsyncTask<Void, Void, Void> {
+	private AppacitiveCallback callback;
+	private T result;
 
-  BackgroundTask(AppacitiveCallback theCallback)
-  {
-    this.result = null;
-    this.exception = null;
-    this.callback = theCallback;
-  }
+	BackgroundTask(AppacitiveCallback theCallback) {
+		this.result = null;
+		this.callback = theCallback;
+	}
 
-  public abstract T run() throws AppacitiveException;
+	public abstract T run();
 
-  protected Void doInBackground(Void[] params) {
-    try
-    {
-      this.result = run();
-      return null;
-    } catch (AppacitiveException e) {
-      this.exception = e;
-    }
-	   return null;
-  }
+	protected Void doInBackground(Void[] params) {
+		this.result = run();
+		return null;
+	}
 
-//  On post execute sending the callback
-  protected void onPostExecute(Void v) {
-//    if (this.callback != null)
-//      this.callback.internalDone(this.result, this.exception);
-  }
+	// On post execute sending the callback
+	protected void onPostExecute(Void v) {
+		// if (this.callback != null)
+		// this.callback.internalDone(this.result, this.exception);
+	}
 
-  void executeInThisThread()
-  {
-    doInBackground(new Void[0]);
-    onPostExecute(null);
-  }
+	void executeInThisThread() {
+		doInBackground(new Void[0]);
+		onPostExecute(null);
+	}
 
-  static int executeTask(BackgroundTask<?> task)
-  {
-    task.execute(new Void[0]);
-    return 0;
-  }
+	static int executeTask(BackgroundTask<?> task) {
+		task.execute(new Void[0]);
+		return 0;
+	}
 }

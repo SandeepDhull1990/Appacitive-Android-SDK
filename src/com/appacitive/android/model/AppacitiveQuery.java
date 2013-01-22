@@ -3,8 +3,21 @@ package com.appacitive.android.model;
 import java.util.ArrayList;
 import java.util.Date;
 
+/**
+ * Helper class that helps in building the query.
+ * @author Sandeep Dhull
+ */
 public class AppacitiveQuery {
 
+	/**
+	 * Helper method to generate an equal to query string.
+	 * 
+	 * @param propertyName
+	 *            name of the property to search for
+	 * @param propertyValue
+	 *            the value of the property to equate to.
+	 * @return Query string.
+	 */
 	public static String queryForEqualCondition(String propertyName,
 			String propertyValue) {
 		if (propertyName != null && propertyValue != null) {
@@ -15,6 +28,14 @@ public class AppacitiveQuery {
 		return null;
 	}
 
+	/**
+	 * Helper method to generate an equal to query string.
+	 * @param propertyName
+	 *            name of the property to search for
+	 * @param propertyValue
+	 *            the date to equate to.
+	 * @return Query string.
+	 */
 	public static String queryForEqualCondition(String propertyName,
 			Date propertyValue) {
 		if (propertyName != null && propertyValue != null) {
@@ -25,6 +46,15 @@ public class AppacitiveQuery {
 		return null;
 	}
 
+	/**
+	 * Helper method to generate a query string for like condition.
+	 * 
+	 * @param propertyName
+	 *            name of the property to search for
+	 * @param propertyValue
+	 *            the value of the property.
+	 * @return Query String.
+	 */
 	public static String queryForLikeCondition(String propertyName,
 			String propertyValue) {
 		if (propertyName != null && propertyValue != null) {
@@ -35,6 +65,15 @@ public class AppacitiveQuery {
 		return null;
 	}
 
+	/**
+	 * Helper method to generate a greater than query string. 
+	 * 
+	 * @param propertyName
+	 *            name of the property to search for
+	 * @param propertyValue
+	 *            value that the property should be greater than.
+	 * @return Query String.
+	 */
 	public static String queryForGreaterThanCondition(String propertyName,
 			String propertyValue) {
 		if (propertyName != null && propertyValue != null) {
@@ -45,6 +84,15 @@ public class AppacitiveQuery {
 		return null;
 	}
 
+	/**
+	 * Helper method to generate a less than query string. 
+	 * 
+	 * @param propertyName
+	 *            name of the property to search for.
+	 * @param propertyValue
+	 *            value that the property should be greater than.
+	 * @return Query String.
+	 */	
 	public static String queryForLessThanCondition(String propertyName,
 			String propertyValue) {
 		if (propertyName != null && propertyValue != null) {
@@ -54,23 +102,50 @@ public class AppacitiveQuery {
 		}
 		return null;
 	}
-
+	
+	/**
+	 * Helper method to generate a query string for page size.
+	 * @param psize an integer value for the page size.
+	 * @return Query String.
+	 */
 	public static String queryStringForPageSize(int psize) {
 		return String.format("psize=%d", psize);
 	}
 
+	/**
+	 * Helper method to generate a query string for page num.
+	 * @param pnum an integer value for the page num.
+	 * @return Query String.
+	 */
 	public static String queryStringForPageNumber(int pnum) {
 		return String.format("pnum=%d", pnum);
 	}
 
-	// TODO : Add query for geocode property
-	public static String queryStringForGeocodeProperty( String propertyName, double latitude, double longitude, int radius, AppacitiveDistanceMetrics metrics) {
-		String query = "*" + propertyName +" within_circle " + latitude +","+longitude+"," + radius +" " + metrics.toString();
+	
+	/**
+	 * Helper method to generate a query string for geocode search.
+	 * @param propertyName name of the geocode property of the schema to search for.
+	 * @param latitude the geocode latitude to search for.
+	 * @param longitude the geocode longitude to search for.
+	 * @param radius the radios around the location to look for.
+	 * @param metrics the distance either in km or miles.
+	 * @return Query String.
+	 */
+	public static String queryStringForGeocodeProperty(String propertyName,
+			double latitude, double longitude, int radius,
+			AppacitiveDistanceMetrics metrics) {
+		String query = "*" + propertyName + " within_circle " + latitude + ","
+				+ longitude + "," + radius + " " + metrics.toString();
 		return query;
 	}
 
 	// TODO : Add query for Polygon search
 
+	/**
+	 * Helper method to generate a query string for search with one or more tags.
+	 * @param tags an array of tags to search for.
+	 * @return Query String.
+	 */
 	public static String queryStringForSearchWithOneOrMoreTags(
 			ArrayList<String> tags) {
 		if (tags == null) {
@@ -86,7 +161,11 @@ public class AppacitiveQuery {
 		return query.toString();
 	}
 
-	public static String queryStringForSearchWithAllTags(ArrayList<String> tags) {
+	/**
+	 * Helper method to generate a query string for search with all tags.
+	 * @param tags an array of tags to search for.
+	 * @return Query String.
+	 */	public static String queryStringForSearchWithAllTags(ArrayList<String> tags) {
 		if (tags == null) {
 			return null;
 		}

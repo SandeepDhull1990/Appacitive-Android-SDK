@@ -7,11 +7,10 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.appacitive.android.model.AppacitiveError;
-import com.appacitive.android.model.AppacitivePagingInfo;
-
 import android.util.JsonReader;
 import android.util.JsonToken;
+
+import com.appacitive.android.model.AppacitiveError;
 
 public class AppacitiveHelperMethods {
 
@@ -34,7 +33,6 @@ public class AppacitiveHelperMethods {
 				appacitiveError.setReferenceId(referenceId);
 			} else if (name.equals("additionalmessages")
 					&& reader.peek() != JsonToken.NULL) {
-				// The contents are array of string.
 				reader.skipValue();
 			} else {
 				reader.skipValue();
@@ -98,7 +96,6 @@ public class AppacitiveHelperMethods {
 		return null;
 	}
 
-	// TODO : Handle the additional messages in the response status
 	public static AppacitiveError checkForErrorInStatus(JSONObject statusObject)
 			throws JSONException {
 		AppacitiveError error = new AppacitiveError();
@@ -111,41 +108,6 @@ public class AppacitiveHelperMethods {
 			return error;
 		}
 		return null;
-	}
-
-	public static AppacitivePagingInfo readPagingInfo(JsonReader reader)
-			throws IOException {
-		AppacitivePagingInfo pagingInfo = new AppacitivePagingInfo();
-		reader.beginObject();
-		String name;
-
-		while (reader.hasNext()) {
-			name = reader.nextName();
-			if (name.equals("pagenumber") && reader.peek() != JsonToken.NULL) {
-				pagingInfo.setPageNumber(reader.nextLong());
-			} else if (name.equals("pagesize")
-					&& reader.peek() != JsonToken.NULL) {
-				pagingInfo.setPageSize(reader.nextLong());
-			} else if (name.equals("totalrecords")
-					&& reader.peek() != JsonToken.NULL) {
-				pagingInfo.setTotalRecords(reader.nextLong());
-			} else {
-				reader.skipValue();
-			}
-		}
-		reader.endObject();
-		return pagingInfo;
-
-	}
-
-	public static AppacitivePagingInfo readPagingInfo(JSONObject object)
-			throws JSONException {
-		AppacitivePagingInfo pagingInfo = new AppacitivePagingInfo();
-		pagingInfo.setPageNumber(object.getLong("pagenumber"));
-		pagingInfo.setPageSize(object.getLong("pagesize"));
-		pagingInfo.setTotalRecords(object.getLong("totalrecords"));
-		return pagingInfo;
-
 	}
 
 }
