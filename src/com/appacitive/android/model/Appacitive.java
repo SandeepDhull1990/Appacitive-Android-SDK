@@ -17,6 +17,8 @@ import org.json.JSONObject;
 import android.content.Context;
 import android.util.Log;
 
+import com.appacitive.android.callbacks.AppacitiveCallback;
+import com.appacitive.android.util.AppacitiveHelperMethods;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 import com.google.gson.Gson;
@@ -24,10 +26,7 @@ import com.google.gson.reflect.TypeToken;
 
 public class Appacitive {
 
-	// Context will be used if we broadcast that the session is created
-	// private Context mContext;
 	private String mSessionId;
-//	The api is used to refresh the session..
 	private String mApiKey;
 	private String mDeploymentId;
 	private AppacitiveCallback mCallBack;

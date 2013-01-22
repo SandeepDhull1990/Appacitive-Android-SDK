@@ -12,6 +12,10 @@ import java.util.Date;
 import java.util.HashMap;
 
 import android.util.Log;
+
+import com.appacitive.android.callbacks.AppacitiveAuthenticationCallback;
+import com.appacitive.android.callbacks.AppacitiveSignUpCallback;
+import com.appacitive.android.util.AppacitiveHelperMethods;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 import com.google.gson.Gson;

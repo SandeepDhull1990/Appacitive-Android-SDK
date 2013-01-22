@@ -19,6 +19,9 @@ import java.util.Map;
 
 import android.util.Log;
 
+import com.appacitive.android.callbacks.AppacitiveCallback;
+import com.appacitive.android.callbacks.AppacitiveFetchCallback;
+import com.appacitive.android.util.AppacitiveHelperMethods;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 import com.google.gson.Gson;

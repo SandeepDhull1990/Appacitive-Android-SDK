@@ -1,4 +1,6 @@
-package com.appacitive.android.model;
+package com.appacitive.android.callbacks;
+
+import com.appacitive.android.model.AppacitiveError;
 
 public interface AppacitiveCallback {
 	

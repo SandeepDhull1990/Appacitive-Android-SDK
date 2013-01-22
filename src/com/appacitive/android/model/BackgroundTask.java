@@ -2,6 +2,8 @@ package com.appacitive.android.model;
 
 import android.os.AsyncTask;
 
+import com.appacitive.android.callbacks.AppacitiveCallback;
+
 //TODO : Rethink this class Design
 abstract class BackgroundTask<T> extends AsyncTask<Void, Void, Void>
 {

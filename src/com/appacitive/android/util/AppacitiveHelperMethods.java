@@ -1,4 +1,4 @@
-package com.appacitive.android.model;
+package com.appacitive.android.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -6,6 +6,9 @@ import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.appacitive.android.model.AppacitiveError;
+import com.appacitive.android.model.AppacitivePagingInfo;
 
 import android.util.JsonReader;
 import android.util.JsonToken;

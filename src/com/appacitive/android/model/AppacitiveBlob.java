@@ -13,6 +13,7 @@ import java.net.URL;
 
 import android.util.Log;
 
+import com.appacitive.android.callbacks.AppacitiveCallback;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 
