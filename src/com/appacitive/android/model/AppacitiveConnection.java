@@ -21,7 +21,6 @@ import android.util.Log;
 
 import com.appacitive.android.callbacks.AppacitiveCallback;
 import com.appacitive.android.callbacks.AppacitiveFetchCallback;
-import com.appacitive.android.util.AppacitiveHelperMethods;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 import com.google.gson.Gson;
@@ -51,8 +50,8 @@ public class AppacitiveConnection {
 	private Date mUtcDateCreated;
 	private Date mUtcLastModifiedDate;
 	private long mRevision;
-	private HashMap<String, Object> mProperties;
-	private HashMap<String, Object> mAttributes;
+	private Map<String, Object> mProperties;
+	private Map<String, Object> mAttributes;
 	private List<String> mTags;
 
 	/**
@@ -122,22 +121,13 @@ public class AppacitiveConnection {
 					requestParams = AppacitiveConnection.this
 							.createRequestParams();
 					try {
-						url = new URL(Constants.CONNECTION_URL
-								+ AppacitiveConnection.this.mRelationType);
-						HttpURLConnection connection = (HttpURLConnection) url
-								.openConnection();
-						connection
-								.setRequestMethod(AppacitiveRequestMethods.PUT
-										.requestMethod());
-						connection.setRequestProperty("Content-Type",
-								"application/json");
-						connection.setRequestProperty("Content-Length",
-								Integer.toString(((requestParams.toString())
-										.length())));
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
+						url = new URL(Constants.CONNECTION_URL + AppacitiveConnection.this.mRelationType);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.PUT.requestMethod());
+						connection.setRequestProperty("Content-Type","application/json");
+						connection.setRequestProperty("Content-Length",Integer.toString(((requestParams.toString()).length())));
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
 						connection.setDoOutput(true);
 
 						OutputStream os = connection.getOutputStream();
@@ -147,14 +137,10 @@ public class AppacitiveConnection {
 						InputStream inputStream;
 						Map<String, Object> responseMap = null;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.d("TAG","Request failed " + connection.getResponseMessage());
 							appacitiveError = new AppacitiveError();
-							appacitiveError.setStatusCode(connection
-									.getResponseCode() + "");
-							appacitiveError.setMessage(connection
-									.getResponseMessage());
+							appacitiveError.setStatusCode(connection.getResponseCode() + "");
+							appacitiveError.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(
@@ -721,25 +707,23 @@ public class AppacitiveConnection {
 
 	@SuppressWarnings("unchecked")
 	private void readAppacitiveConnection(Map<String, Object> responseMap) {
-		Map<String, Object> connectionMap = (Map<String, Object>) responseMap
-				.get("connection");
+		Map<String, Object> connectionMap = (Map<String, Object>) responseMap.get("connection");
 		this.mConnectionId = new Long((String) connectionMap.get("__id"));
 		this.mRelationType = (String) connectionMap.get("__relationtype");
 		this.mCreatedBy = (String) connectionMap.get("__createdby");
 		this.mLastModifiedBy = (String) connectionMap.get("__lastmodifiedby");
 		this.mRevision = new Long((String) connectionMap.get("__revision"));
+		this.mAttributes  = (Map<String, Object>) connectionMap.get("__attributes");
+		this.mTags = (List<String>) connectionMap.get("__tags");
+		this.mProperties = AppacitiveHelperMethods.getProperties(connectionMap);
 		try {
-			this.mUtcDateCreated = fromJsonResponse((String) connectionMap
-					.get("__utcdatecreated"));
-			this.mUtcLastModifiedDate = fromJsonResponse((String) connectionMap
-					.get("__utclastupdateddate"));
+			this.mUtcDateCreated = fromJsonResponse((String) connectionMap.get("__utcdatecreated"));
+			this.mUtcLastModifiedDate = fromJsonResponse((String) connectionMap.get("__utclastupdateddate"));
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
-		Map<String, Object> endpointA = (Map<String, Object>) connectionMap
-				.get("__endpointa");
-		Map<String, Object> endpointB = (Map<String, Object>) connectionMap
-				.get("__endpointb");
+		Map<String, Object> endpointA = (Map<String, Object>) connectionMap.get("__endpointa");
+		Map<String, Object> endpointB = (Map<String, Object>) connectionMap.get("__endpointb");
 		this.mLabelA = (String) endpointA.get("label");
 		this.mLabelB = (String) endpointB.get("label");
 		this.mArticleAId = new Long((String) endpointA.get("articleid"));
@@ -772,7 +756,7 @@ public class AppacitiveConnection {
 
 	private Date fromJsonResponse(String dateString) throws ParseException {
 		SimpleDateFormat formatter = new SimpleDateFormat(
-				"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+				"yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'");
 		Date date = formatter.parse(dateString);
 		return date;
 	}
