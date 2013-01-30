@@ -19,12 +19,11 @@ import com.appacitive.android.util.Constants;
 
 public class AppacitiveBlob {
 
-//	TODO Uploading and downloading the blob
 	public static void uploadFile(final String path, final String fileName,
 			final String mimeType) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive.getSessionId() != null) {
-			BackgroundTask<Void> saveTask = new BackgroundTask<Void>(null) {
+			BackgroundTask<Void> saveTask = new BackgroundTask<Void>() {
 
 				@Override
 				public Void run()  {
@@ -96,13 +95,11 @@ public class AppacitiveBlob {
 		}
 	}
 
-//	TODO Downloading the file
-	
 	public static void downloadFile(final String fileUrl, final String toFile,
 			final AppacitiveCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
 		if (appacitive.getSessionId() != null) {
-			BackgroundTask<Void> saveTask = new BackgroundTask<Void>(null) {
+			BackgroundTask<Void> saveTask = new BackgroundTask<Void>() {
 
 				@Override
 				public Void run()  {
@@ -123,7 +120,6 @@ public class AppacitiveBlob {
 						}
 						inputStream.close();
 						outputStream.close();
-						Log.d("TAG", "Reached Here");
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {

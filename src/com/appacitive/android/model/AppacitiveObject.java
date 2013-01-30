@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.os.Handler;
 import android.util.Log;
 
 import com.appacitive.android.callbacks.AppacitiveCallback;
@@ -27,7 +28,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 /**
- * An APObject is a basic unit to store information in. It represents an
+ * An AppacitiveObject is a basic unit to store information in. It represents an
  * instance of a schema. Data can be stored in key-value pairs in the properties
  * and attributes fields.
  * 
@@ -49,7 +50,7 @@ public class AppacitiveObject {
 	protected Date mUTCLastUpdatedDate;
 
 	/**
-	 * Initialize an APObject with the provided schema name.
+	 * Initialize an AppacitiveObject with the provided schema name.
 	 * 
 	 * @param schemaType
 	 *            The schema this article represents.
@@ -59,7 +60,7 @@ public class AppacitiveObject {
 	}
 
 	/**
-	 * Method used to add an property to the APObject. Attributes are used to
+	 * Method used to add an property to the AppacitiveObject. Attributes are used to
 	 * store extra information.
 	 * 
 	 * @param key
@@ -75,7 +76,7 @@ public class AppacitiveObject {
 	}
 
 	/**
-	 * Adds a attruibute to an APObject.
+	 * Adds a attruibute to an AppacitiveObject.
 	 * 
 	 * @param key
 	 *            The Field For which the value needs to be set
@@ -90,10 +91,10 @@ public class AppacitiveObject {
 	}
 
 	/**
-	 * Method used to add a tag to the APObject.
+	 * Method used to add a tag to the AppacitiveObject.
 	 * 
 	 * @param tag
-	 *            The tag to be added to the APObject.
+	 *            The tag to be added to the AppacitiveObject.
 	 */
 	public void addTag(String tag) {
 		if (this.mTags == null) {
@@ -151,11 +152,15 @@ public class AppacitiveObject {
 	 *            failed.
 	 */
 	public void saveObject(final AppacitiveCallback callback) {
+		
 		final Appacitive appacitive = Appacitive.getInstance();
-
-		if (appacitive != null) {
-			BackgroundTask<Void> saveTask = new BackgroundTask<Void>(null) {
+		final Handler handler = new Handler();
+		
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			
+			BackgroundTask<Void> saveTask = new BackgroundTask<Void>() {
 				AppacitiveError error;
+				Map<String, Object> responseMap = null;
 
 				@Override
 				public Void run() {
@@ -178,7 +183,6 @@ public class AppacitiveObject {
 						os.close();
 
 						InputStream inputStream;
-						Map<String, Object> responseMap = null;
 
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.w("TAG","Request failed " + connection.getResponseMessage());
@@ -198,16 +202,25 @@ public class AppacitiveObject {
 							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
+							if(error == null) {
+								readArticle(responseMap);
+							}
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								readArticle(responseMap);
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										callback.onSuccess();
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
+						
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
@@ -219,6 +232,12 @@ public class AppacitiveObject {
 			saveTask.execute();
 		} else {
 			Log.w("Appacitive","Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
@@ -241,26 +260,33 @@ public class AppacitiveObject {
 	 * 
 	 * @param deleteConnection
 	 *            If this is true then all the APConnection associated with this
-	 *            APObject also get detected.
+	 *            AppacitiveObject also get detected.
 	 * @param callback Callback invoked when the delete operation is successful or
 	 *            failed.
 	 * 				
 	 */
 	public void deleteObjectWithConnections(final boolean deleteConnections,
 			final AppacitiveCallback callback) {
+		
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> deleteTask = new BackgroundTask<Void>(null) {
+		final Handler handler = new Handler();
+		
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			
+			BackgroundTask<Void> deleteTask = new BackgroundTask<Void>() {
 				AppacitiveError error;
+				Map<String, Object> responseMap = null;
 
 				@Override
 				public Void run()  {
+					
 					URL url;
+					String urlString = Constants.ARTICLE_URL + AppacitiveObject.this.mSchemaType + "/" + AppacitiveObject.this.mObjectId;
+					
+					if (deleteConnections) {
+						urlString = urlString + "?deleteconnections=true";
+					}
 					try {
-						String urlString = Constants.ARTICLE_URL + AppacitiveObject.this.mSchemaType + "/" + AppacitiveObject.this.mObjectId;
-						if (deleteConnections) {
-							urlString = urlString + "?deleteconnections=true";
-						}
 						url = new URL(urlString);
 
 						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -269,7 +295,6 @@ public class AppacitiveObject {
 						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
 
 						InputStream inputStream;
-						Map<String, Object> responseMap = null;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							error = new AppacitiveError();
@@ -284,19 +309,26 @@ public class AppacitiveObject {
 							while ((response = bufferedReader.readLine()) != null) {
 								buffer.append(response);
 							}
+							
 							Gson gson = new Gson();
 							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										callback.onSuccess();
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
@@ -308,30 +340,42 @@ public class AppacitiveObject {
 			deleteTask.execute();
 		} else {
 			Log.w("Appacitive","Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
 	/**
-	 * Deletes multiple APObjects.
+	 * Deletes multiple AppacitiveObjects from the remote server.
 	 * @param objectIds The ids of the objects to delete.
 	 * @param schemaName The schema that the objects belong to.
 	 * @param callback Callback invoked when the delete operation is successful or
 	 *            failed.
 	 */
-	public static void deleteObjectsWithIds(final ArrayList<String> objectIds,
-			final String schemaName, final AppacitiveCallback callback) {
+	public static void deleteObjectsWithIds(final ArrayList<String> objectIds, final String schemaName, final AppacitiveCallback callback) {
+		
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> deleteTask = new BackgroundTask<Void>(null) {
+		final Handler handler = new Handler();
+		
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<Void> deleteTask = new BackgroundTask<Void>() {
+				
 				AppacitiveError error;
+				Map<String, Object> responseMap = null;
 
 				@Override
 				public Void run()  {
 					URL url;
 					Gson gson = new Gson();
 					HashMap<String, List<String>> requestMap = new HashMap<String, List<String>>();
+					
 					requestMap.put("idlist", objectIds);
 					String requestParams = gson.toJson(requestMap);
+					
 					try {
 						url = new URL(Constants.ARTICLE_URL + schemaName + "/bulkdelete");
 						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -346,7 +390,6 @@ public class AppacitiveObject {
 						os.close();
 
 						InputStream inputStream;
-						Map<String, Object> responseMap = null;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							error = new AppacitiveError();
@@ -366,13 +409,19 @@ public class AppacitiveObject {
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										callback.onSuccess();
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
@@ -385,19 +434,30 @@ public class AppacitiveObject {
 		} else {
 			Log.w("Appacitive",
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
 	/**
-	 * Fetch all the properties of the APConnection object on which this method is invoked.
+	 * Fetches all the properties of an AppacitiveConnection object on which this method is invoked.
 	 * @param callback Callback invoked when the fetch operation is successful or
 	 *            failed.
 	 */
 	public void fetchObject(final AppacitiveFetchCallback callback) {
+		
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>(null) {
+		final Handler handler = new Handler();
+		
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>() {
+				
 				AppacitiveError error;
+				Map<String, Object> responseMap = null;
 
 				@Override
 				public Void run()  {
@@ -405,53 +465,46 @@ public class AppacitiveObject {
 					try {
 						url = new URL(Constants.ARTICLE_URL
 								+ AppacitiveObject.this.mSchemaType + "/" + AppacitiveObject.this.mObjectId);
-						HttpURLConnection connection = (HttpURLConnection) url
-								.openConnection();
-						connection
-								.setRequestMethod(AppacitiveRequestMethods.GET
-										.requestMethod());
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
 
 						InputStream inputStream;
-						Map<String, Object> responseMap = null;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.w("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setMessage(connection.getResponseMessage());
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode() + "");
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
+							InputStreamReader reader = new InputStreamReader(inputStream);
+							BufferedReader bufferedReader = new BufferedReader(reader);
 							StringBuffer response = new StringBuffer();
 							String buffer;
 							while ((buffer = bufferedReader.readLine()) != null) {
 								response.append(buffer);
 							}
+							
 							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(response.toString(),
-									typeOfClass);
-							error = AppacitiveHelperMethods
-									.checkForErrorInStatus(responseMap);
+							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
+							responseMap = gson.fromJson(response.toString(),typeOfClass);
+							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess(responseMap);
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										callback.onSuccess(responseMap);
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
@@ -464,11 +517,17 @@ public class AppacitiveObject {
 		} else {
 			Log.w("Appacitive",
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
 	/**
-	 * Retrieves multiple APObjects of a particular schema.
+	 * Retrieves multiple AppacitiveObject of a particular schema.
 	 * @param ids The ids of the objects.
 	 * @param schemaName The schema name the objects belong to.
 	 * @param callback Callback invoked when the fetch operation is successful or
@@ -476,10 +535,15 @@ public class AppacitiveObject {
 	 */
 	public static void fetchObjectsWithIds(final ArrayList<String> ids,
 			final String schemaName, final AppacitiveFetchCallback callback) {
+		
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>(null) {
+		final Handler handler = new Handler();
+		
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<Void> fetchTask = new BackgroundTask<Void>() {
+				
 				AppacitiveError error;
+				Map<String, Object> responseMap = null;
 
 				@Override
 				public Void run()  {
@@ -497,52 +561,47 @@ public class AppacitiveObject {
 						}
 						url = new URL(Constants.ARTICLE_URL + schemaName
 								+ "/multiget" + "/" + queryParams);
-						HttpURLConnection connection = (HttpURLConnection) url
-								.openConnection();
-						connection
-								.setRequestMethod(AppacitiveRequestMethods.GET
-										.requestMethod());
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
 						InputStream inputStream;
-						Map<String, Object> responseMap = null;
+						
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.w("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode() + "");
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
+							InputStreamReader reader = new InputStreamReader(inputStream);
+							BufferedReader bufferedReader = new BufferedReader(reader);
 							StringBuffer buffer = new StringBuffer();
 							String response;
 							while ((response = bufferedReader.readLine()) != null) {
 								buffer.append(response);
 							}
+							
 							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(buffer.toString(),
-									typeOfClass);
+							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
+							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
 							error = AppacitiveHelperMethods
 									.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess(responseMap);
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										callback.onSuccess(responseMap);
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
@@ -555,11 +614,17 @@ public class AppacitiveObject {
 		} else {
 			Log.w("Appacitive",
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
 	/**
-	 * Searches for all APObjects of a particular schema.
+	 * Searches for all AppacitiveObjects of a particular schema.
 	 * @param schemaName The schema name the objects belong to.
 	 * @param callback Callback invoked when the search operation is successful or
 	 *            failed.
@@ -570,7 +635,7 @@ public class AppacitiveObject {
 	}
 
 	/**
-	 * Searches for APObjects and filters the results according to the query string.
+	 * Searches for AppacitiveObjects and filters the results according to the query string.
 	 * @param schemaName The schema name the objects belong to.
 	 * @param query SQL kind of query to search for specific objects. For more info http://appacitive.com
 	 * @param callback Callback invoked when the search operation is successful or
@@ -578,9 +643,14 @@ public class AppacitiveObject {
 	 */
 	public static void searchObjects(final String schemaName,
 			final String query, final AppacitiveFetchCallback callback) {
+		
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> searchTask = new BackgroundTask<Void>(null) {
+		final Handler handler = new Handler();
+		
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<Void> searchTask = new BackgroundTask<Void>() {
+				
+				Map<String, Object> responseMap = null;
 				AppacitiveError error;
 
 				@Override
@@ -593,52 +663,45 @@ public class AppacitiveObject {
 					}
 					try {
 						url = new URL(urlString.replace(" ", "%20"));
-						HttpURLConnection connection = (HttpURLConnection) url
-								.openConnection();
-						connection
-								.setRequestMethod(AppacitiveRequestMethods.GET
-										.requestMethod());
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
 						InputStream inputStream;
-						Map<String, Object> responseMap = null;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.w("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode()+ "");
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
+							InputStreamReader reader = new InputStreamReader(inputStream);
+							BufferedReader bufferedReader = new BufferedReader(reader);
 							StringBuffer buffer = new StringBuffer();
 							String response;
 							while ((response = bufferedReader.readLine()) != null) {
 								buffer.append(response);
 							}
+							
 							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(buffer.toString(),
-									typeOfClass);
-							error = AppacitiveHelperMethods
-									.checkForErrorInStatus(responseMap);
+							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
+							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
+							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess(responseMap);
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										callback.onSuccess(responseMap);
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
@@ -651,6 +714,12 @@ public class AppacitiveObject {
 		} else {
 			Log.w("Appacitive",
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 

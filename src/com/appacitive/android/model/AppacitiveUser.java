@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.os.Handler;
 import android.util.Log;
 
 import com.appacitive.android.callbacks.AppacitiveAuthenticationCallback;
@@ -24,7 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 /**
- * APUser represent your app's users whose management API's are provided out of
+ * AppacitiveUser represent your app's users whose management API's are provided out of
  * the box. They are internally simply articles of an inbuilt schema user with
  * added features of authorization, authentication , location tracking and
  * third-party social integration.
@@ -84,14 +85,15 @@ public class AppacitiveUser extends AppacitiveObject {
 	 */
 	public static void authenticate(final String userName,final String password,final AppacitiveAuthenticationCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>(
-					null) {
+		final Handler handler = new Handler();
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>() {
+				Map<String, Object> responseMap = null;
+				AppacitiveError error;
+				
 				@Override
 				public Void run() {
 
-					AppacitiveError error;
-					Map<String, Object> responseMap = null;
 
 					HashMap<String, String> requestMap = new HashMap<String, String>();
 					requestMap.put("username", userName);
@@ -136,19 +138,26 @@ public class AppacitiveUser extends AppacitiveObject {
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
 							
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
-							
-							inputStream.close();
-						}
-						if (callback != null) {
-							if (error == null) {
-//								The user is logged in!! now setting the user's attribute
+							if(error == null) {
 								AppacitiveUser user = new AppacitiveUser();
 								user.setNewPropertyValue(responseMap);
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
+								AppacitiveUser.currentUser = user;
 							}
+							inputStream.close();
 						}
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										callback.onSuccess();
+									} else {
+										callback.onFailure(error);
+									}
+								}
+							}
+						});
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -159,6 +168,12 @@ public class AppacitiveUser extends AppacitiveObject {
 		} else {
 			Log.w("Appacitive",
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
@@ -184,14 +199,14 @@ public class AppacitiveUser extends AppacitiveObject {
 	public static void authenticateWithFacebook(final String userAccessToken,
 			final AppacitiveAuthenticationCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>(
-					null) {
+		final Handler handler = new Handler();
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>() {
+				AppacitiveError error = null;
+				Map<String,Object> responseMap = null;
+				
 				@Override
 				public Void run() {
-					
-					AppacitiveError error = null;
-					Map<String,Object> responseMap = null;
 					
 					String urlString = Constants.USER_URL + "authenticate";
 					HashMap<String, String> requestMap = new HashMap<String, String>();
@@ -232,15 +247,21 @@ public class AppacitiveUser extends AppacitiveObject {
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										AppacitiveUser user = new AppacitiveUser();
+										user.setNewPropertyValue(responseMap);
+										callback.onSuccess();
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -251,6 +272,12 @@ public class AppacitiveUser extends AppacitiveObject {
 		} else {
 			Log.w("Appacitive",
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
@@ -291,14 +318,14 @@ public class AppacitiveUser extends AppacitiveObject {
 			final String consumerSecret,
 			final AppacitiveAuthenticationCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>(
-					null) {
+		final Handler handler = new Handler();
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>() {
+				AppacitiveError error;
+				Map<String,Object> responseMap = null;
+				
 				@Override
 				public Void run() {
-					
-					AppacitiveError error;
-					Map<String,Object> responseMap = null;
 					
 					String urlString = Constants.USER_URL + "authenticate";
 					HashMap<String, String> requestMap = new HashMap<String, String>();
@@ -342,15 +369,21 @@ public class AppacitiveUser extends AppacitiveObject {
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										AppacitiveUser user = new AppacitiveUser();
+										user.setNewPropertyValue(responseMap);
+										callback.onSuccess();
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -360,6 +393,12 @@ public class AppacitiveUser extends AppacitiveObject {
 			autenticateTask.execute();
 		} else {
 			Log.w("Appacitive","Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
@@ -374,15 +413,16 @@ public class AppacitiveUser extends AppacitiveObject {
 	public static void createUser(final AppacitiveUserDetail userDetails, final AppacitiveSignUpCallback callback) {
 
 		final Appacitive sharedObject = Appacitive.getInstance();
-		if (sharedObject != null) {
+		final Handler handler = new Handler();
+		if (sharedObject != null && sharedObject.getSessionId() != null) {
 
-			BackgroundTask<Void> createTask = new BackgroundTask<Void>(null) {
+			BackgroundTask<Void> createTask = new BackgroundTask<Void>() {
+				AppacitiveError error;
+				Map<String,Object> responseMap = null;
 
 				@Override
 				public Void run() {
 					
-					AppacitiveError error;
-					Map<String,Object> responseMap = null;
 					
 					String urlString = Constants.USER_URL + "create";
 					String requestParams = userDetails.createRequestParams();
@@ -421,15 +461,21 @@ public class AppacitiveUser extends AppacitiveObject {
 							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
-								callback.onSuccess(user);
-							} else {
-								callback.onFailure(error);
+						handler.post(new Runnable() {
+							
+							@Override
+							public void run() {
+								if (callback != null) {
+									if (error == null) {
+										AppacitiveUser user = new AppacitiveUser();
+										user.setNewPropertyValue(responseMap);
+										callback.onSuccess(user);
+									} else {
+										callback.onFailure(error);
+									}
+								}
 							}
-						}
+						});
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -439,6 +485,12 @@ public class AppacitiveUser extends AppacitiveObject {
 			createTask.execute();
 		} else {
 			Log.w("Appacitive","Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode("404");
+			if(callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 	

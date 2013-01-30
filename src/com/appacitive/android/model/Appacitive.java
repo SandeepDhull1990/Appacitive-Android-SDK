@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import android.content.Context;
+import android.os.Handler;
 import android.util.Log;
 
 import com.appacitive.android.callbacks.AppacitiveCallback;
@@ -32,15 +33,13 @@ import com.google.gson.reflect.TypeToken;
 public class Appacitive {
 
 	private String mSessionId;
-	private String mApiKey;
 	private AppacitiveCallback mCallBack;
 	private boolean enableDebugForEachRequest;
 	private boolean enableLiveEnvironment;
 	private static Appacitive mSharedInstance;
 
 	private Appacitive(Context context, String apiKey) {
-		this.mApiKey = apiKey;
-		// Context is required in case we are sending the broadcast
+		// Context is required in case we are sending the broadcast in future.
 		// this.mContext = context;
 		this.enableLiveEnvironment = false;
 		fetchSession(apiKey);
@@ -65,8 +64,10 @@ public class Appacitive {
 	}
 
 	private void fetchSession(final String apiKey) {
-		BackgroundTask<Void> backgroundTask = new BackgroundTask<Void>(null) {
+		final Handler handler = new Handler();
+		BackgroundTask<Void> backgroundTask = new BackgroundTask<Void>() {
 			AppacitiveError error;
+			Map<String, Object> responseMap = null;
 
 			@Override
 			public Void run() {
@@ -91,7 +92,6 @@ public class Appacitive {
 					os.close();
 
 					InputStream inputStream;
-					Map<String, Object> responseMap = null;
 					if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 						Log.w("TAG","Request failed " + connection.getResponseMessage());
 						error = new AppacitiveError();
@@ -106,17 +106,27 @@ public class Appacitive {
 						while ((response = bufferedReader.readLine()) != null) {
 							buffer.append(response);
 						}
+						
 						Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 						responseMap = gson.fromJson(buffer.toString(),typeOfClass);
 						error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
+						if(error == null) {
+							readSessionKey(responseMap);
+						}
 						inputStream.close();
 					}
-					if (error != null) {
-						mCallBack.onFailure(error);
-					} else {
-						readSessionKey(responseMap);
-						mCallBack.onSuccess();
-					}
+					
+					handler.post(new Runnable() {
+
+						@Override
+						public void run() {
+							if (error != null) {
+								mCallBack.onFailure(error);
+							} else {
+								mCallBack.onSuccess();
+							}
+						}
+					});
 				} catch (MalformedURLException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
@@ -125,19 +135,17 @@ public class Appacitive {
 				return null;
 			}
 
+			@SuppressWarnings("unchecked")
 			private void readSessionKey(Map<String, Object> response) {
-				@SuppressWarnings("unchecked")
-				Map<String, String> sessionMap = (Map<String, String>) response
-						.get("session");
-				Appacitive.this.mSessionId = (String) sessionMap
-						.get("sessionkey");
+				Map<String, String> sessionMap = (Map<String, String>) response.get("session");
+				Appacitive.this.mSessionId = (String) sessionMap.get("sessionkey");
 			}
 		};
 		backgroundTask.execute();
 	}
 
 	/**
-	 * Returns the instances of singleton instance of Appacitive. If instance is null, then session is not initialized. 
+	 * Returns the singleton instance of Appacitive. If instance is null, then session is not initialized. 
 	 * @return Returns the shared instance of Appacitive.
 	 */
 	public static Appacitive getInstance() {
@@ -188,7 +196,7 @@ public class Appacitive {
 	}
 
 	/**
-	 * By default the environment is set to sandbox. To change to pass true as an argument.
+	 * By default the environment is set to sandbox. To change the environment to live pass true as an argument.
 	 * 
 	 * @param enableLiveEnvironment
 	 *            Enables/Disables live environment.

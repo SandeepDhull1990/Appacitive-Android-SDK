@@ -139,8 +139,26 @@ public class AppacitiveQuery {
 		return query;
 	}
 
-	// TODO : Add query for Polygon search
-
+	/**
+	 * Helper method to generate query string for polygon search.
+	 * @param propertyName name of the geocode property of the schema to search for. 
+	 * @param coordinates list of coordinates to be included in the polygon search.
+	 * @return
+	 */
+	public static String queryStringForPolygonProperty(String propertyName,ArrayList<AppacitiveGeopoint> coordinates) {
+		StringBuffer query = new StringBuffer();
+		query.append("*" + propertyName + " within_polygon ");
+		for(int i = 0 ; i < coordinates.size() ; i++) {
+			AppacitiveGeopoint point = coordinates.get(i);
+			query.append(point.toString());
+			if(i < coordinates.size() - 1) {
+				query.append("|");
+			}
+		}
+		return query.toString();
+	}
+	
+	
 	/**
 	 * Helper method to generate a query string for search with one or more tags.
 	 * @param tags an array of tags to search for.
