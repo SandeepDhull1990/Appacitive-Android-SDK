@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import android.content.Context;
-import android.os.Handler;
 import android.util.Log;
 
 import com.appacitive.android.callbacks.AppacitiveCallback;
@@ -56,7 +55,8 @@ public class Appacitive {
 	 *            Callback to the caller indication whether session is properly
 	 *            initialized or failed.
 	 */
-	public static void initializeAppacitive(Context context, String apiKey, AppacitiveCallback callback) {
+	public static void initializeAppacitive(Context context, String apiKey,
+			AppacitiveCallback callback) {
 		if (apiKey != null && !apiKey.isEmpty()) {
 			mSharedInstance = new Appacitive(context, apiKey);
 			mSharedInstance.mCallBack = callback;
@@ -64,27 +64,30 @@ public class Appacitive {
 	}
 
 	private void fetchSession(final String apiKey) {
-		final Handler handler = new Handler();
 		BackgroundTask<Void> backgroundTask = new BackgroundTask<Void>() {
 			AppacitiveError error;
 			Map<String, Object> responseMap = null;
 
 			@Override
 			public Void run() {
-				Map<String,Object> requestMap = new HashMap<String, Object>();
+				Map<String, Object> requestMap = new HashMap<String, Object>();
 				requestMap.put("apikey", apiKey);
 				requestMap.put("isnonsliding", false);
 				requestMap.put("windowtime", 60);
 				requestMap.put("usagecount", -1);
 				Gson gson = new Gson();
 				String requestParams = gson.toJson(requestMap);
-				
+
 				try {
 					URL url = new URL(Constants.SESSION_URL);
-					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-					connection.setRequestMethod(AppacitiveRequestMethods.PUT.requestMethod());
-					connection.setRequestProperty("Content-Type","application/json");
-					connection.setRequestProperty("Content-Length", Integer.toString(((requestParams.toString()).length())));
+					HttpURLConnection connection = (HttpURLConnection) url
+							.openConnection();
+					connection.setRequestMethod(AppacitiveRequestMethods.PUT
+							.requestMethod());
+					connection.setRequestProperty("Content-Type",
+							"application/json");
+					connection.setRequestProperty("Content-Length", Integer
+							.toString(((requestParams.toString()).length())));
 					connection.setDoOutput(true);
 
 					OutputStream os = connection.getOutputStream();
@@ -93,40 +96,42 @@ public class Appacitive {
 
 					InputStream inputStream;
 					if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-						Log.w("TAG","Request failed " + connection.getResponseMessage());
+						Log.w("TAG",
+								"Request failed "
+										+ connection.getResponseMessage());
 						error = new AppacitiveError();
 						error.setStatusCode(connection.getResponseCode() + "");
 						error.setMessage(connection.getResponseMessage());
 					} else {
 						inputStream = connection.getInputStream();
-						InputStreamReader reader = new InputStreamReader(inputStream);
-						BufferedReader bufferedReader = new BufferedReader(reader);
+						InputStreamReader reader = new InputStreamReader(
+								inputStream);
+						BufferedReader bufferedReader = new BufferedReader(
+								reader);
 						StringBuffer buffer = new StringBuffer();
 						String response;
 						while ((response = bufferedReader.readLine()) != null) {
 							buffer.append(response);
 						}
-						
-						Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
-						responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-						error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
-						if(error == null) {
+
+						Type typeOfClass = new TypeToken<Map<String, Object>>() {
+						}.getType();
+						responseMap = gson.fromJson(buffer.toString(),
+								typeOfClass);
+						error = AppacitiveHelperMethods
+								.checkForErrorInStatus(responseMap);
+						if (error == null) {
 							readSessionKey(responseMap);
 						}
 						inputStream.close();
 					}
-					
-					handler.post(new Runnable() {
-
-						@Override
-						public void run() {
-							if (error != null) {
-								mCallBack.onFailure(error);
-							} else {
-								mCallBack.onSuccess();
-							}
+					if(mCallBack != null) {
+						if (error != null) {
+							mCallBack.onFailure(error);
+						} else {
+							mCallBack.onSuccess();
 						}
-					});
+					}
 				} catch (MalformedURLException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
@@ -137,15 +142,19 @@ public class Appacitive {
 
 			@SuppressWarnings("unchecked")
 			private void readSessionKey(Map<String, Object> response) {
-				Map<String, String> sessionMap = (Map<String, String>) response.get("session");
-				Appacitive.this.mSessionId = (String) sessionMap.get("sessionkey");
+				Map<String, String> sessionMap = (Map<String, String>) response
+						.get("session");
+				Appacitive.this.mSessionId = (String) sessionMap
+						.get("sessionkey");
 			}
 		};
 		backgroundTask.execute();
 	}
 
 	/**
-	 * Returns the singleton instance of Appacitive. If instance is null, then session is not initialized. 
+	 * Returns the singleton instance of Appacitive. If instance is null, then
+	 * session is not initialized.
+	 * 
 	 * @return Returns the shared instance of Appacitive.
 	 */
 	public static Appacitive getInstance() {
@@ -177,8 +186,8 @@ public class Appacitive {
 	}
 
 	/**
-	 * This method will enable/disable debugging each request made to
-	 * appacitive hence.
+	 * This method will enable/disable debugging each request made to appacitive
+	 * hence.
 	 * 
 	 * @param enableDebugForEachRequest
 	 *            Enable/Disable the Debugging for each request.
@@ -189,14 +198,16 @@ public class Appacitive {
 
 	/**
 	 * @return Return the current environment. True indicates that current
-	 *         environment is live, and false the current environment is sandbox.
+	 *         environment is live, and false the current environment is
+	 *         sandbox.
 	 */
 	public boolean isEnableLiveEnvironment() {
 		return enableLiveEnvironment;
 	}
 
 	/**
-	 * By default the environment is set to sandbox. To change the environment to live pass true as an argument.
+	 * By default the environment is set to sandbox. To change the environment
+	 * to live pass true as an argument.
 	 * 
 	 * @param enableLiveEnvironment
 	 *            Enables/Disables live environment.
@@ -206,7 +217,9 @@ public class Appacitive {
 	}
 
 	/**
-	 * Returns "live" if the current environment is "live", otherwise returns "sandbox".
+	 * Returns "live" if the current environment is "live", otherwise returns
+	 * "sandbox".
+	 * 
 	 * @return Returns the current Environment.
 	 */
 	public String getEnvironment() {
