@@ -139,7 +139,7 @@ public class AppacitiveUser extends AppacitiveObject {
 							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
 
-							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
+							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
 							if (error == null) {
 								AppacitiveUser user = new AppacitiveUser();
 								user.setNewPropertyValue(responseMap);
@@ -166,7 +166,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -207,7 +207,8 @@ public class AppacitiveUser extends AppacitiveObject {
 					HashMap<String, String> requestMap = new HashMap<String, String>();
 					requestMap.put("type", "facebook");
 					requestMap.put("accesstoken", userAccessToken);
-					requestMap.put("createNew", "true");
+//					To Fix
+//					requestMap.put("createNew", "true");
 					Gson gson = new Gson();
 					String requestParams = gson.toJson(requestMap);
 					try {
@@ -242,7 +243,7 @@ public class AppacitiveUser extends AppacitiveObject {
 							}
 							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
+							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
 						if (callback != null) {
@@ -266,7 +267,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -360,7 +361,7 @@ public class AppacitiveUser extends AppacitiveObject {
 							}
 							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
+							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
 						if (callback != null) {
@@ -384,7 +385,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -448,7 +449,7 @@ public class AppacitiveUser extends AppacitiveObject {
 							Gson gson = new Gson();
 							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-							error = AppacitiveHelperMethods.checkForErrorInStatus(responseMap);
+							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
 						if (callback != null) {
@@ -472,7 +473,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -497,7 +498,7 @@ public class AppacitiveUser extends AppacitiveObject {
 		}
 		this.mAttributes = (Map<String, Object>) userMap.get("__attributes");
 		this.mTags = (List<String>) userMap.get("__tags");
-		this.mProperties = AppacitiveHelperMethods.getProperties(userMap);
+		this.mProperties = AppacitiveHelper.getProperties(userMap);
 		if (map.containsKey("token")) {
 			this.mUserToken = (String) map.get("token");
 		}

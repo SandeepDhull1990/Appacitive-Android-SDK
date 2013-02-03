@@ -118,7 +118,7 @@ public class Appacitive {
 						}.getType();
 						responseMap = gson.fromJson(buffer.toString(),
 								typeOfClass);
-						error = AppacitiveHelperMethods
+						error = AppacitiveHelper
 								.checkForErrorInStatus(responseMap);
 						if (error == null) {
 							readSessionKey(responseMap);

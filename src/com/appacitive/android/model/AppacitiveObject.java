@@ -215,7 +215,7 @@ public class AppacitiveObject {
 							}.getType();
 							responseMap = gson.fromJson(buffer.toString(),
 									typeOfClass);
-							error = AppacitiveHelperMethods
+							error = AppacitiveHelper
 									.checkForErrorInStatus(responseMap);
 							if (error == null) {
 								readArticle(responseMap);
@@ -244,7 +244,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -337,7 +337,7 @@ public class AppacitiveObject {
 							}.getType();
 							responseMap = gson.fromJson(buffer.toString(),
 									typeOfClass);
-							error = AppacitiveHelperMethods
+							error = AppacitiveHelper
 									.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
@@ -362,7 +362,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -445,7 +445,7 @@ public class AppacitiveObject {
 							}.getType();
 							responseMap = gson.fromJson(buffer.toString(),
 									typeOfClass);
-							error = AppacitiveHelperMethods
+							error = AppacitiveHelper
 									.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
@@ -470,7 +470,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -538,7 +538,7 @@ public class AppacitiveObject {
 							}.getType();
 							responseMap = gson.fromJson(response.toString(),
 									typeOfClass);
-							error = AppacitiveHelperMethods
+							error = AppacitiveHelper
 									.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
@@ -563,7 +563,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -644,7 +644,7 @@ public class AppacitiveObject {
 							}.getType();
 							responseMap = gson.fromJson(buffer.toString(),
 									typeOfClass);
-							error = AppacitiveHelperMethods
+							error = AppacitiveHelper
 									.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
@@ -669,7 +669,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -759,7 +759,7 @@ public class AppacitiveObject {
 							}.getType();
 							responseMap = gson.fromJson(buffer.toString(),
 									typeOfClass);
-							error = AppacitiveHelperMethods
+							error = AppacitiveHelper
 									.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
@@ -784,7 +784,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -848,9 +848,7 @@ public class AppacitiveObject {
 						InputStream inputStream;
 
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.w("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setMessage(connection.getResponseMessage());
 							error.setStatusCode(connection.getResponseCode()
@@ -872,7 +870,7 @@ public class AppacitiveObject {
 							}.getType();
 							responseMap = gson.fromJson(buffer.toString(),
 									typeOfClass);
-							error = AppacitiveHelperMethods
+							error = AppacitiveHelper
 									.checkForErrorInStatus(responseMap);
 							inputStream.close();
 						}
@@ -899,7 +897,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("404");
+			error.setStatusCode("8002");
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -925,7 +923,7 @@ public class AppacitiveObject {
 		}
 		this.mAttributes = (Map<String, Object>) articleMap.get("__attributes");
 		this.mTags = (List<String>) articleMap.get("__tags");
-		this.mProperties = AppacitiveHelperMethods.getProperties(articleMap);
+		this.mProperties = AppacitiveHelper.getProperties(articleMap);
 	}
 
 	private Date fromJsonResponse(String dateString) throws ParseException {
