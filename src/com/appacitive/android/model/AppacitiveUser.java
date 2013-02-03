@@ -204,11 +204,10 @@ public class AppacitiveUser extends AppacitiveObject {
 				public Void run() {
 
 					String urlString = Constants.USER_URL + "authenticate";
-					HashMap<String, String> requestMap = new HashMap<String, String>();
+					HashMap<String, Object> requestMap = new HashMap<String, Object>();
 					requestMap.put("type", "facebook");
 					requestMap.put("accesstoken", userAccessToken);
-//					To Fix
-//					requestMap.put("createNew", "true");
+					requestMap.put("createNew", true);
 					Gson gson = new Gson();
 					String requestParams = gson.toJson(requestMap);
 					try {
@@ -321,9 +320,9 @@ public class AppacitiveUser extends AppacitiveObject {
 				public Void run() {
 
 					String urlString = Constants.USER_URL + "authenticate";
-					HashMap<String, String> requestMap = new HashMap<String, String>();
+					HashMap<String, Object> requestMap = new HashMap<String, Object>();
 					requestMap.put("type", "twitter");
-					requestMap.put("createNew", "true");
+					requestMap.put("createNew", true);
 					requestMap.put("oauthtoken", oauthToken);
 					requestMap.put("oauthtokensecret", oauthSecret);
 					Gson gson = new Gson();
