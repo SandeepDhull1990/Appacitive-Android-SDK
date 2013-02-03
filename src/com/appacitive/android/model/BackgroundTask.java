@@ -7,7 +7,7 @@ abstract class BackgroundTask<T> extends AsyncTask<Void, Void, Void> {
 
 	public abstract T run();
 
-	protected Void doInBackground(Void[] params) {
+	protected Void doInBackground(Void... params) {
 		run();
 		return null;
 	}
