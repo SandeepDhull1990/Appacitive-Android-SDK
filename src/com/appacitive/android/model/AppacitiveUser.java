@@ -207,7 +207,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					HashMap<String, Object> requestMap = new HashMap<String, Object>();
 					requestMap.put("type", "facebook");
 					requestMap.put("accesstoken", userAccessToken);
-					requestMap.put("createNew", true);
+					requestMap.put("createnew", true);
 					Gson gson = new Gson();
 					String requestParams = gson.toJson(requestMap);
 					try {
@@ -243,12 +243,16 @@ public class AppacitiveUser extends AppacitiveObject {
 							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
 							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
+
+							if (error == null) {
+								AppacitiveUser user = new AppacitiveUser();
+								user.setNewPropertyValue(responseMap);
+								AppacitiveUser.currentUser = user;
+							}
 							inputStream.close();
 						}
 						if (callback != null) {
 							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
 								callback.onSuccess();
 							} else {
 								callback.onFailure(error);
@@ -322,7 +326,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					String urlString = Constants.USER_URL + "authenticate";
 					HashMap<String, Object> requestMap = new HashMap<String, Object>();
 					requestMap.put("type", "twitter");
-					requestMap.put("createNew", true);
+					requestMap.put("createnew", true);
 					requestMap.put("oauthtoken", oauthToken);
 					requestMap.put("oauthtokensecret", oauthSecret);
 					Gson gson = new Gson();
@@ -361,12 +365,15 @@ public class AppacitiveUser extends AppacitiveObject {
 							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
 							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
 							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
+							if (error == null) {
+								AppacitiveUser user = new AppacitiveUser();
+								user.setNewPropertyValue(responseMap);
+								AppacitiveUser.currentUser = user;
+							}
 							inputStream.close();
 						}
 						if (callback != null) {
 							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
 								callback.onSuccess();
 							} else {
 								callback.onFailure(error);

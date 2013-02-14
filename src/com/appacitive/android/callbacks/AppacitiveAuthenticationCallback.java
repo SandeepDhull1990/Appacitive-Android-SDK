@@ -4,7 +4,6 @@ import com.appacitive.android.model.AppacitiveError;
 
 /**
  * Interface definition for a callback to be invoked when user makes an authentication request. 
- * @author Sandeep Dhull
  */
 public interface AppacitiveAuthenticationCallback {
 

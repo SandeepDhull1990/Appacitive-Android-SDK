@@ -1,7 +1,6 @@
 package com.appacitive.android.model;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -12,16 +11,17 @@ import java.util.Map;
 
 import android.util.Log;
 
-import com.appacitive.android.callbacks.AppacitiveCallback;
 import com.appacitive.android.callbacks.AppacitiveDownloadCallback;
+import com.appacitive.android.callbacks.AppacitiveUploadCallback;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 /**
- * AppacitiveFile, provides the helper method to upload and download files from appacitive.
- *
+ * AppacitiveFile, provides the helper method to upload and download files from
+ * appacitive.
+ * 
  */
 
 public class AppacitiveFile {
@@ -35,10 +35,10 @@ public class AppacitiveFile {
 	 * @param data
 	 * @param callback
 	 */
-	
+
 	public static void uploadData(final String fileName,
 			final String contentType, final int validity, final byte[] data,
-			final AppacitiveCallback callback) {
+			final AppacitiveUploadCallback callback) {
 
 		final Appacitive appacitive = Appacitive.getInstance();
 
@@ -48,14 +48,101 @@ public class AppacitiveFile {
 			public Void run() {
 				AppacitiveError error;
 				Map<String, Object> responseMap;
+				String publicUrl = null;
 				if (appacitive != null && appacitive.getSessionId() != null) {
 					StringBuffer urlString = new StringBuffer(
 							Constants.FILE_UPLOAD_URL);
 					urlString = urlString.append("?filename=" + fileName
-							+ "&expires=" + validity);
+							+ "&expires=" + Long.MAX_VALUE);
 					if (contentType != null) {
 						urlString.append("&contenttype=" + contentType);
 					}
+					try {
+						URL url = new URL(urlString.toString());
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG", "Request failed " + connection.getResponseMessage());
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode() + "");
+							error.setMessage(connection.getResponseMessage());
+						} else {
+							InputStream is = connection.getInputStream();
+							InputStreamReader reader = new InputStreamReader(is);
+							BufferedReader bufferedReader = new BufferedReader(reader);
+							StringBuffer buffer = new StringBuffer();
+							String response;
+							while ((response = bufferedReader.readLine()) != null) {
+								buffer.append(response);
+							}
+
+							Gson gson = new Gson();
+							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
+							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
+							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
+							is.close();
+
+							if (error == null) {
+								String uplaodUrlString = (String) responseMap.get("url");
+								URL uploadUrl = new URL(uplaodUrlString);
+								connection = (HttpURLConnection) uploadUrl.openConnection();
+								if (contentType == null) {
+									connection.setRequestProperty( "Content-Type", "application/octet-stream");
+								} else {
+									connection.setRequestProperty("Content-Type", contentType);
+								}
+								connection.setRequestProperty("Content-Length", data.length + "");
+								connection.setRequestMethod(AppacitiveRequestMethods.PUT.requestMethod());
+								connection.setDoOutput(true);
+
+								OutputStream os = connection.getOutputStream();
+								os.write(data);
+								os.close();
+
+								if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+									Log.w("TAG", "Request failed " + connection.getResponseMessage());
+									error = new AppacitiveError();
+									error.setStatusCode(connection.getResponseCode() + "");
+									error.setMessage(connection.getResponseMessage());
+								} else {
+									publicUrl = getPublicUrl(fileName);
+								}
+							}
+						}
+						if (error == null) {
+							callback.onSuccess(publicUrl);
+						} else {
+							callback.onFailure(error);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+						Log.d("TAG", "The exception is " + e);
+					}
+				}
+				return null;
+			}
+
+		};
+		uploadTask.execute();
+	}
+
+	public static void download(final String key,
+			final AppacitiveDownloadCallback callback) {
+
+		final Appacitive appacitive = Appacitive.getInstance();
+
+		BackgroundTask<Void> downloadTask = new BackgroundTask<Void>() {
+
+			@Override
+			public Void run() {
+				AppacitiveError error;
+				Map<String, Object> responseMap;
+				InputStream responseInputStream = null;
+				if (appacitive != null && appacitive.getSessionId() != null) {
+					String urlString = Constants.FILE_DOWNLOAD_URL + "/" + key;
 					try {
 						URL url = new URL(urlString.toString());
 						HttpURLConnection connection = (HttpURLConnection) url
@@ -97,73 +184,49 @@ public class AppacitiveFile {
 							is.close();
 
 							if (error == null) {
-								String uplaodUrlString = (String) responseMap
-										.get("url");
-								URL uploadUrl = new URL(uplaodUrlString);
+								String downloadUrlString = (String) responseMap
+										.get("uri");
+								URL uploadUrl = new URL(downloadUrlString);
 								connection = (HttpURLConnection) uploadUrl
 										.openConnection();
-								if (contentType == null) {
-									connection.setRequestProperty(
-											"Content-Type",
-											"application/octet-stream");
-								} else {
-									connection.setRequestProperty(
-											"Content-Type", contentType);
-								}
-								connection.setRequestProperty("Content-Length",
-										data.length + "");
 								connection
-										.setRequestMethod(AppacitiveRequestMethods.PUT
+										.setRequestMethod(AppacitiveRequestMethods.GET
 												.requestMethod());
-								connection.setDoOutput(true);
-
-								OutputStream os = connection.getOutputStream();
-								os.write(data);
-								os.close();
 
 								if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 									Log.w("TAG",
-											"Request failed " + connection.getResponseMessage());
+											"Request failed "
+													+ connection
+															.getResponseMessage());
 									error = new AppacitiveError();
 									error.setStatusCode(connection
 											.getResponseCode() + "");
 									error.setMessage(connection
 											.getResponseMessage());
+								} else {
+									responseInputStream = connection
+											.getInputStream();
 								}
 							}
 						}
 						if (error == null) {
-							callback.onSuccess();
+							callback.onSuccess(responseInputStream);
 						} else {
 							callback.onFailure(error);
 						}
+
 					} catch (Exception e) {
 						e.printStackTrace();
-						Log.d("TAG",
-								"The exception is " + e.getLocalizedMessage());
+						Log.d("TAG", "The exception is " + e);
 					}
 				}
 				return null;
 			}
-
 		};
-		uploadTask.execute();
+		downloadTask.execute();
 	}
 
-	public static void uploadFile(final String fileName,
-			final String contentType, final int validity,
-			final InputStream inputStream, final AppacitiveCallback callback) {
-		byte[] data;
-		try {
-			data = new byte[inputStream.available()];
-			inputStream.read(data);
-			uploadData(fileName, contentType, validity, data, callback);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public static void download(final String key,
+	public static void getDownloadURL(final String key,
 			final AppacitiveDownloadCallback callback) {
 
 		final Appacitive appacitive = Appacitive.getInstance();
@@ -179,21 +242,29 @@ public class AppacitiveFile {
 					String urlString = Constants.FILE_DOWNLOAD_URL + "/" + key;
 					try {
 						URL url = new URL(urlString.toString());
-						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
-						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+						HttpURLConnection connection = (HttpURLConnection) url
+								.openConnection();
+						connection
+								.setRequestMethod(AppacitiveRequestMethods.GET
+										.requestMethod());
+						connection.setRequestProperty("Appacitive-Session",
+								appacitive.getSessionId());
 						connection.setRequestProperty("Appacitive-Environment",
 								appacitive.getEnvironment());
 
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.w("TAG","Request failed " + connection.getResponseMessage());
+							Log.w("TAG",
+									"Request failed "
+											+ connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode() + "");
+							error.setStatusCode(connection.getResponseCode()
+									+ "");
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							InputStream is = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(is);
-							BufferedReader bufferedReader = new BufferedReader(reader);
+							BufferedReader bufferedReader = new BufferedReader(
+									reader);
 							StringBuffer buffer = new StringBuffer();
 							String response;
 							while ((response = bufferedReader.readLine()) != null) {
@@ -201,24 +272,37 @@ public class AppacitiveFile {
 							}
 
 							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
-							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
+							Type typeOfClass = new TypeToken<Map<String, Object>>() {
+							}.getType();
+							responseMap = gson.fromJson(buffer.toString(),
+									typeOfClass);
+							error = AppacitiveHelper
+									.checkForErrorInStatus(responseMap);
 							is.close();
 
 							if (error == null) {
-								String downloadUrlString = (String) responseMap.get("uri");
+								String downloadUrlString = (String) responseMap
+										.get("uri");
 								URL uploadUrl = new URL(downloadUrlString);
-								connection = (HttpURLConnection) uploadUrl.openConnection();
-								connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+								connection = (HttpURLConnection) uploadUrl
+										.openConnection();
+								connection
+										.setRequestMethod(AppacitiveRequestMethods.GET
+												.requestMethod());
 
 								if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-									Log.w("TAG","Request failed " + connection.getResponseMessage());
+									Log.w("TAG",
+											"Request failed "
+													+ connection
+															.getResponseMessage());
 									error = new AppacitiveError();
-									error.setStatusCode(connection.getResponseCode() + "");
-									error.setMessage(connection.getResponseMessage());
+									error.setStatusCode(connection
+											.getResponseCode() + "");
+									error.setMessage(connection
+											.getResponseMessage());
 								} else {
-									responseInputStream = connection.getInputStream();
+									responseInputStream = connection
+											.getInputStream();
 								}
 							}
 						}
@@ -230,8 +314,7 @@ public class AppacitiveFile {
 
 					} catch (Exception e) {
 						e.printStackTrace();
-						Log.d("TAG",
-								"The exception is " + e.getLocalizedMessage());
+						Log.d("TAG", "The exception is " + e);
 					}
 				}
 				return null;
@@ -240,4 +323,45 @@ public class AppacitiveFile {
 		downloadTask.execute();
 	}
 
+	private static String getPublicUrl(String key) {
+		AppacitiveError error;
+		Appacitive appacitive = Appacitive.getInstance();
+		Map<String, Object> responseMap;
+		String urlString = Constants.FILE_DOWNLOAD_URL + "/" + key +"?expires=" + (525949 * 10);
+		try {
+			URL url = new URL(urlString.toString());
+			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+			connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+			connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
+			connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+
+			if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+				Log.w("TAG","Request failed " + connection.getResponseMessage());
+				error = new AppacitiveError();
+				error.setStatusCode(connection.getResponseCode() + "");
+				error.setMessage(connection.getResponseMessage());
+			} else {
+				InputStream is = connection.getInputStream();
+				InputStreamReader reader = new InputStreamReader(is);
+				BufferedReader bufferedReader = new BufferedReader(reader);
+				StringBuffer buffer = new StringBuffer();
+				String response;
+				while ((response = bufferedReader.readLine()) != null) {
+					buffer.append(response);
+				}
+
+				Gson gson = new Gson();
+				Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
+				responseMap = gson.fromJson(buffer.toString(), typeOfClass);
+				error = AppacitiveHelper.checkForErrorInStatus(responseMap);
+				is.close();
+
+				String downloadUrlString = (String) responseMap.get("uri");
+				return downloadUrlString;
+			}
+		} catch (Exception e) {
+			Log.d("TAG", "Exception " + e);
+		}
+		return null;
+	}
 }

@@ -73,6 +73,14 @@ public class AppacitiveObject {
 		}
 		this.mProperties.put(key, value);
 	}
+	
+	public Object getProperty(String key) {
+		if(this.mProperties != null) {
+			return this.mProperties.get(key);
+		}
+		return null;
+	}
+	
 
 	/**
 	 * Adds a attruibute to an AppacitiveObject.
@@ -933,6 +941,7 @@ public class AppacitiveObject {
 		return date;
 	}
 
+	
 	// Setters and Getters
 	public String getCreatedBy() {
 		return mCreatedBy;

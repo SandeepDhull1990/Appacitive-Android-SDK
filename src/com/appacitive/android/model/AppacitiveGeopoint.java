@@ -18,6 +18,6 @@ public class AppacitiveGeopoint {
 	
 	@Override
 	public String toString() {
-		return String.format("%lf,%lf", latitude,longitude);
+		return String.format(latitude+","+longitude);
 	}
 }
