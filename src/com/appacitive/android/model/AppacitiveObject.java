@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -16,14 +17,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import android.util.Log;
-
 import com.appacitive.android.callbacks.AppacitiveCallback;
 import com.appacitive.android.callbacks.AppacitiveFetchCallback;
+import com.appacitive.android.json.model.AppacitiveAdapter;
+import com.appacitive.android.json.model.AppacitiveObjectModel;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 
 /**
@@ -35,17 +38,27 @@ import com.google.gson.reflect.TypeToken;
  */
 // TODO : Do the proper Documentation
 public class AppacitiveObject {
-
+	@SerializedName("__createdby")
 	protected String mCreatedBy;
+	@SerializedName("__schematype")
 	protected String mSchemaType;
+	@SerializedName("__lastmodifiedby")
 	protected String mLastModifiedBy;
+	@SerializedName("__id")
 	protected long mObjectId;
+	@SerializedName("__revision")
 	protected long mRevision = -999999;
+	@SerializedName("__schemaid")
 	protected long mSchemaId;
+	
 	protected Map<String, Object> mProperties;
+	@SerializedName("__attributes")
 	protected Map<String, Object> mAttributes;
+	@SerializedName("__tags")
 	protected List<String> mTags;
+	@SerializedName("__utcdatecreated")
 	protected Date mUTCDateCreated;
+	@SerializedName("__utclastupdateddate")
 	protected Date mUTCLastUpdatedDate;
 
 	/**
@@ -56,6 +69,10 @@ public class AppacitiveObject {
 	 */
 	public AppacitiveObject(String schemaType) {
 		this.mSchemaType = schemaType;
+	}
+
+	
+	public AppacitiveObject() {
 	}
 
 	/**
@@ -167,7 +184,7 @@ public class AppacitiveObject {
 			BackgroundTask<Void> saveTask = new BackgroundTask<Void>() {
 				AppacitiveError error;
 				Map<String, Object> responseMap = null;
-
+				AppacitiveObject appacitiveObject;
 				@Override
 				public Void run() {
 					URL url;
@@ -205,33 +222,26 @@ public class AppacitiveObject {
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setMessage(connection.getResponseMessage());
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode());
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(buffer.toString(),
-									typeOfClass);
-							error = AppacitiveHelper
-									.checkForErrorInStatus(responseMap);
-							if (error == null) {
-								readArticle(responseMap);
-							}
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveObject.class, new AppacitiveAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+					        AppacitiveObjectModel response = gson.fromJson(reader, AppacitiveObjectModel.class);
+					        appacitiveObject = response.mAppacitiveObject;
+//					        error = AppacitiveHelper
+//									.checkForErrorInStatus(response);
+					        error = response.mStatus;
 							inputStream.close();
+//							if (error == null) {
+//								readArticle(responseMap);
+//							}
+//							inputStream.close();
 						}
 						if (callback != null) {
-							if (error == null) {
+							if (error.mStatusCode.equals("200")) {
 								callback.onSuccess();
 							} else {
 								callback.onFailure(error);
@@ -252,7 +262,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -267,6 +277,16 @@ public class AppacitiveObject {
 	 */
 	public void deleteObject() {
 		deleteObjectWithConnections(false, null);
+	}
+	
+	/**
+	 * Deletes the article on the remote server.
+	 * 
+	 * This method will delete an article in the background. If deletion is
+	 * successful or unsuccessful a callback will be invoked.
+	 */
+	public void deleteObject(AppacitiveCallback callback) {
+		deleteObjectWithConnections(false, callback);
 	}
 
 	/**
@@ -326,8 +346,7 @@ public class AppacitiveObject {
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setMessage(connection.getResponseMessage());
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode());
 						} else {
 							inputStream = connection.getInputStream();
 							InputStreamReader reader = new InputStreamReader(
@@ -370,7 +389,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -436,26 +455,16 @@ public class AppacitiveObject {
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setMessage(connection.getResponseMessage());
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode());
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(buffer.toString(),
-									typeOfClass);
-							error = AppacitiveHelper
-									.checkForErrorInStatus(responseMap);
+							Reader reader = new InputStreamReader(inputStream);
+					        AppacitiveError response = gson.fromJson(reader, AppacitiveError.class);
 							inputStream.close();
+							if(!response.mStatusCode.equals("200")) {
+//								Theres some erro
+								error = response;
+							}
 						}
 						if (callback != null) {
 							if (error == null) {
@@ -478,7 +487,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -502,7 +511,7 @@ public class AppacitiveObject {
 
 				AppacitiveError error;
 				Map<String, Object> responseMap = null;
-
+				AppacitiveObject appacitiveObject = null;
 				@Override
 				public Void run() {
 					URL url;
@@ -527,32 +536,23 @@ public class AppacitiveObject {
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setMessage(connection.getResponseMessage());
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode());
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
-							StringBuffer response = new StringBuffer();
-							String buffer;
-							while ((buffer = bufferedReader.readLine()) != null) {
-								response.append(buffer);
-							}
-
-							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(response.toString(),
-									typeOfClass);
-							error = AppacitiveHelper
-									.checkForErrorInStatus(responseMap);
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveObject.class, new AppacitiveAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+					        AppacitiveObjectModel response = gson.fromJson(reader, AppacitiveObjectModel.class);
+					        appacitiveObject = response.mAppacitiveObject;
+//					        error = AppacitiveHelper
+//									.checkForErrorInStatus(response);
+					        error = response.mStatus;
 							inputStream.close();
 						}
 						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess(responseMap);
+							if (error.mStatusCode.equals("200")) {
+								callback.onSuccess(appacitiveObject);
 							} else {
 								callback.onFailure(error);
 							}
@@ -571,7 +571,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -599,6 +599,7 @@ public class AppacitiveObject {
 
 				AppacitiveError error;
 				Map<String, Object> responseMap = null;
+				List<AppacitiveObject> results = null;
 
 				@Override
 				public Void run() {
@@ -632,33 +633,25 @@ public class AppacitiveObject {
 									"Request failed "
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-
-							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(buffer.toString(),
-									typeOfClass);
-							error = AppacitiveHelper
-									.checkForErrorInStatus(responseMap);
+							
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveObject.class, new AppacitiveAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+					        AppacitiveObjectModel response = gson.fromJson(reader, AppacitiveObjectModel.class);
+					        results = response.mAppacitiveObjects;
+//					        error = AppacitiveHelper
+//									.checkForErrorInStatus(response);
+					        error = response.mStatus;
 							inputStream.close();
 						}
 						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess(responseMap);
+							if (error.mStatusCode.equals("200")) {
+								callback.onSuccess(results);
 							} else {
 								callback.onFailure(error);
 							}
@@ -677,7 +670,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -720,6 +713,7 @@ public class AppacitiveObject {
 			BackgroundTask<Void> searchTask = new BackgroundTask<Void>() {
 
 				Map<String, Object> responseMap = null;
+				List<AppacitiveObject> results = null;
 				AppacitiveError error;
 
 				@Override
@@ -747,33 +741,28 @@ public class AppacitiveObject {
 									"Request failed "
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-
-							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(buffer.toString(),
-									typeOfClass);
-							error = AppacitiveHelper
-									.checkForErrorInStatus(responseMap);
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveObject.class, new AppacitiveAdapter());
+							Gson gson = builder.create();
+					        
+							Reader reader = new InputStreamReader(inputStream);
+					        
+					        AppacitiveObjectModel response = gson.fromJson(reader, AppacitiveObjectModel.class);
+					        
+					        results = response.mAppacitiveObjects;
+//					        error = AppacitiveHelper
+//									.checkForErrorInStatus(response);
+					        error = response.mStatus;
 							inputStream.close();
 						}
 						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess(responseMap);
+							if (error.mStatusCode.equals("200")) {
+//								callback.onSuccess(responseMap);
+								callback.onSuccess(results);
 							} else {
 								callback.onFailure(error);
 							}
@@ -792,7 +781,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -822,7 +811,7 @@ public class AppacitiveObject {
 			BackgroundTask<Void> saveTask = new BackgroundTask<Void>() {
 				AppacitiveError error;
 				Map<String, Object> responseMap = null;
-
+				AppacitiveObject appacitiveObject = null;
 				@Override
 				public Void run() {
 					URL url;
@@ -859,31 +848,22 @@ public class AppacitiveObject {
 							Log.w("TAG","Request failed " + connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setMessage(connection.getResponseMessage());
-							error.setStatusCode(connection.getResponseCode()
-									+ "");
+							error.setStatusCode(connection.getResponseCode());
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							BufferedReader bufferedReader = new BufferedReader(
-									reader);
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-
-							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {
-							}.getType();
-							responseMap = gson.fromJson(buffer.toString(),
-									typeOfClass);
-							error = AppacitiveHelper
-									.checkForErrorInStatus(responseMap);
-							inputStream.close();
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveObject.class, new AppacitiveAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+					        AppacitiveObjectModel response = gson.fromJson(reader, AppacitiveObjectModel.class);
+					        appacitiveObject = response.mAppacitiveObject;
+//					        error = AppacitiveHelper
+//									.checkForErrorInStatus(response);
+					        error = response.mStatus;
+					        inputStream.close();
 						}
 						if (callback != null) {
-							if (error == null) {
+							if (error.mStatusCode.equals("200")) {
 								readArticle(responseMap);
 								callback.onSuccess();
 							} else {
@@ -905,7 +885,7 @@ public class AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -934,7 +914,7 @@ public class AppacitiveObject {
 		this.mProperties = AppacitiveHelper.getProperties(articleMap);
 	}
 
-	private Date fromJsonResponse(String dateString) throws ParseException {
+	private static Date fromJsonResponse(String dateString) throws ParseException {
 		SimpleDateFormat formatter = new SimpleDateFormat(
 				"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 		Date date = formatter.parse(dateString);
@@ -975,6 +955,15 @@ public class AppacitiveObject {
 		return mSchemaId;
 	}
 
+	public void setSchemaId(long schemaId) {
+		this.mSchemaId = schemaId;
+	}
+
+	public void setCreatedBy(String createdBy) {
+		this.mCreatedBy = createdBy;
+	}
+
+
 	public List<String> getTags() {
 		return mTags;
 	}
@@ -987,10 +976,30 @@ public class AppacitiveObject {
 		return mUTCDateCreated;
 	}
 
+	public void setLastModifiedBy(String lastModifiedBy) {
+		this.mLastModifiedBy = lastModifiedBy;
+	}
+
+
+	public void setRevision(long revision) {
+		this.mRevision = revision;
+	}
+
+
+	public void setUTCDateCreated(Date UTCDateCreated) {
+		this.mUTCDateCreated = UTCDateCreated;
+	}
+
+
+	public void setUTCLastUpdatedDate(Date UTCLastUpdatedDate) {
+		this.mUTCLastUpdatedDate = UTCLastUpdatedDate;
+	}
+
+
 	public Date getUTCLastUpdatedDate() {
 		return mUTCLastUpdatedDate;
 	}
-
+	
 	@Override
 	public String toString() {
 		return "AppacitiveObject :--> mCreatedBy=" + mCreatedBy
@@ -1000,4 +1009,5 @@ public class AppacitiveObject {
 				+ mUTCDateCreated + ", mUTCLastUpdatedDate="
 				+ mUTCLastUpdatedDate + "] -- " + mProperties.toString();
 	}
+
 }

@@ -1,8 +1,10 @@
 package com.appacitive.android.callbacks;
 
+import java.util.List;
 import java.util.Map;
 
 import com.appacitive.android.model.AppacitiveError;
+import com.appacitive.android.model.AppacitiveObject;
 
 /**
  * Interface definition for callback to be invoked when executing the fetch operation.
@@ -15,6 +17,8 @@ public interface AppacitiveFetchCallback {
 	 * @param response Map containing the fetched values as key value pair.
 	 */
 	public void onSuccess(Map<String, Object> response);
+	public void onSuccess(List<AppacitiveObject> response);
+	public void onSuccess(AppacitiveObject response);
 	/**
 	 * Called when the fetch has failed due to some reason.
 	 * @param error APError containing the desription of the error.

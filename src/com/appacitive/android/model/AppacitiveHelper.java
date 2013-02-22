@@ -16,10 +16,10 @@ class AppacitiveHelper {
 			statusMap = response;
 		}
 		String code = (String)statusMap.get("code");
-		if(code.equals("200")) {
+		if(Integer.parseInt(code) == 200) {
 			return null;
 		}
-		error.setStatusCode(code);
+		error.setStatusCode(Integer.parseInt(code));
 		error.setMessage((String)statusMap.get("message"));
 		error.setReferenceId((String)statusMap.get("referenceid"));
 		error.setVersion((String)statusMap.get("version"));

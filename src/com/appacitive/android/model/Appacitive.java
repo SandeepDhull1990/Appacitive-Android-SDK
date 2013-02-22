@@ -12,6 +12,8 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import android.annotation.SuppressLint;
+import android.app.Application;
 import android.content.Context;
 import android.util.Log;
 
@@ -28,7 +30,7 @@ import com.google.gson.reflect.TypeToken;
  * @author Sandeep Dhull
  * 
  */
-
+	
 public class Appacitive {
 
 	private String mSessionId;
@@ -36,10 +38,12 @@ public class Appacitive {
 	private boolean enableDebugForEachRequest;
 	private boolean enableLiveEnvironment;
 	private static Appacitive mSharedInstance;
-
-	private Appacitive(Context context, String apiKey) {
+	private Context mContext;
+	
+	private Appacitive(Application context, String apiKey, AppacitiveCallback callback) {
 		// Context is required in case we are sending the broadcast in future.
-		// this.mContext = context;
+		this.mContext = context;
+		this.mCallBack = callback;
 		this.enableLiveEnvironment = false;
 		fetchSession(apiKey);
 	}
@@ -55,11 +59,15 @@ public class Appacitive {
 	 *            Callback to the caller indication whether session is properly
 	 *            initialized or failed.
 	 */
-	public static void initializeAppacitive(Context context, String apiKey,
+	@SuppressLint("NewApi")
+	public static synchronized void initializeAppacitive(Application context, String apiKey,
 			AppacitiveCallback callback) {
-		if (apiKey != null && !apiKey.isEmpty()) {
-			mSharedInstance = new Appacitive(context, apiKey);
-			mSharedInstance.mCallBack = callback;
+		if (apiKey != null && !apiKey.isEmpty() && mSharedInstance == null) {
+			synchronized (Appacitive.class) {
+				if (apiKey != null && !apiKey.isEmpty() && mSharedInstance == null) {
+					mSharedInstance = new Appacitive(context, apiKey, callback);
+				}				
+			}
 		}
 	}
 
@@ -100,7 +108,7 @@ public class Appacitive {
 								"Request failed "
 										+ connection.getResponseMessage());
 						error = new AppacitiveError();
-						error.setStatusCode(connection.getResponseCode() + "");
+						error.setStatusCode(connection.getResponseCode());
 						error.setMessage(connection.getResponseMessage());
 					} else {
 						inputStream = connection.getInputStream();
@@ -157,7 +165,7 @@ public class Appacitive {
 	 * 
 	 * @return Returns the shared instance of Appacitive.
 	 */
-	public static Appacitive getInstance() {
+	public static synchronized Appacitive getInstance() {
 		return mSharedInstance;
 	}
 
@@ -165,7 +173,7 @@ public class Appacitive {
 	 * End the currently active session. Any further request to appacitive wont
 	 * be successful afterwards.
 	 */
-	public static void endSession() {
+	public void endSession() {
 		mSharedInstance.mSessionId = null;
 		mSharedInstance = null;
 	}
@@ -229,4 +237,10 @@ public class Appacitive {
 		return "sandbox";
 	}
 
+	/**
+	 * Returns the application context
+	 */
+	public Context getContext() {
+		return mContext;
+	}
 }

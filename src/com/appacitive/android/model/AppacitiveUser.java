@@ -123,7 +123,7 @@ public class AppacitiveUser extends AppacitiveObject {
 									"Request failed "
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode() + "");
+							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
@@ -166,7 +166,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -229,7 +229,7 @@ public class AppacitiveUser extends AppacitiveObject {
 									"Request failed "
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode() + "");
+							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
@@ -270,7 +270,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -351,7 +351,7 @@ public class AppacitiveUser extends AppacitiveObject {
 									"Request failed "
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode() + "");
+							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
@@ -391,7 +391,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}
@@ -441,7 +441,7 @@ public class AppacitiveUser extends AppacitiveObject {
 									"Request failed "
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode() + "");
+							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							inputStream = connection.getInputStream();
@@ -479,7 +479,7 @@ public class AppacitiveUser extends AppacitiveObject {
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-			error.setStatusCode("8002");
+			error.setStatusCode(8002);
 			if (callback != null) {
 				callback.onFailure(error);
 			}

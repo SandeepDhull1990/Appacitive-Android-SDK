@@ -12,6 +12,7 @@ import java.util.Map;
 import android.util.Log;
 
 import com.appacitive.android.callbacks.AppacitiveDownloadCallback;
+import com.appacitive.android.callbacks.AppacitiveFetchUrlCallback;
 import com.appacitive.android.callbacks.AppacitiveUploadCallback;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
@@ -67,7 +68,7 @@ public class AppacitiveFile {
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 							Log.w("TAG", "Request failed " + connection.getResponseMessage());
 							error = new AppacitiveError();
-							error.setStatusCode(connection.getResponseCode() + "");
+							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							InputStream is = connection.getInputStream();
@@ -105,7 +106,7 @@ public class AppacitiveFile {
 								if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 									Log.w("TAG", "Request failed " + connection.getResponseMessage());
 									error = new AppacitiveError();
-									error.setStatusCode(connection.getResponseCode() + "");
+									error.setStatusCode(connection.getResponseCode());
 									error.setMessage(connection.getResponseMessage());
 								} else {
 									publicUrl = getPublicUrl(fileName);
@@ -161,7 +162,7 @@ public class AppacitiveFile {
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setStatusCode(connection.getResponseCode()
-									+ "");
+									);
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							InputStream is = connection.getInputStream();
@@ -200,7 +201,7 @@ public class AppacitiveFile {
 															.getResponseMessage());
 									error = new AppacitiveError();
 									error.setStatusCode(connection
-											.getResponseCode() + "");
+											.getResponseCode());
 									error.setMessage(connection
 											.getResponseMessage());
 								} else {
@@ -227,7 +228,7 @@ public class AppacitiveFile {
 	}
 
 	public static void getDownloadURL(final String key,
-			final AppacitiveDownloadCallback callback) {
+			final AppacitiveFetchUrlCallback callback) {
 
 		final Appacitive appacitive = Appacitive.getInstance();
 
@@ -238,6 +239,7 @@ public class AppacitiveFile {
 				AppacitiveError error;
 				Map<String, Object> responseMap;
 				InputStream responseInputStream = null;
+				String downloadUrlString = null;
 				if (appacitive != null && appacitive.getSessionId() != null) {
 					String urlString = Constants.FILE_DOWNLOAD_URL + "/" + key;
 					try {
@@ -258,7 +260,7 @@ public class AppacitiveFile {
 											+ connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setStatusCode(connection.getResponseCode()
-									+ "");
+					);
 							error.setMessage(connection.getResponseMessage());
 						} else {
 							InputStream is = connection.getInputStream();
@@ -281,7 +283,7 @@ public class AppacitiveFile {
 							is.close();
 
 							if (error == null) {
-								String downloadUrlString = (String) responseMap
+								downloadUrlString = (String) responseMap
 										.get("uri");
 								URL uploadUrl = new URL(downloadUrlString);
 								connection = (HttpURLConnection) uploadUrl
@@ -297,7 +299,7 @@ public class AppacitiveFile {
 															.getResponseMessage());
 									error = new AppacitiveError();
 									error.setStatusCode(connection
-											.getResponseCode() + "");
+											.getResponseCode());
 									error.setMessage(connection
 											.getResponseMessage());
 								} else {
@@ -307,7 +309,7 @@ public class AppacitiveFile {
 							}
 						}
 						if (error == null) {
-							callback.onSuccess(responseInputStream);
+							callback.onSuccess(downloadUrlString);
 						} else {
 							callback.onFailure(error);
 						}
@@ -338,7 +340,7 @@ public class AppacitiveFile {
 			if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 				Log.w("TAG","Request failed " + connection.getResponseMessage());
 				error = new AppacitiveError();
-				error.setStatusCode(connection.getResponseCode() + "");
+				error.setStatusCode(connection.getResponseCode());
 				error.setMessage(connection.getResponseMessage());
 			} else {
 				InputStream is = connection.getInputStream();
