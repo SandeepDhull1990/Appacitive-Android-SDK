@@ -1,10 +1,10 @@
 package com.appacitive.android.model;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,26 +14,38 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import android.os.Build;
-import android.util.JsonReader;
-import android.util.JsonToken;
+import android.annotation.SuppressLint;
 import android.util.Log;
 
+import com.appacitive.android.callbacks.AppacitiveCallback;
+import com.appacitive.android.callbacks.AppacitiveFetchCallback;
 import com.appacitive.android.util.AppacitiveRequestMethods;
-import com.appacitive.android.util.AppacitiveUtility;
 import com.appacitive.android.util.Constants;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 
+/**
+ * A Connection is represents an edge in a graph and is used to connect two
+ * AppacitiveObjects. A Connection itself can store data in its properties and
+ * attributes fields.
+ * 
+ * @author Sandeep Dhull
+ */
+
+@SuppressLint("SimpleDateFormat")
 public class AppacitiveConnection {
 
 	private String mCreatedBy;
 	private long mArticleAId;
 	private long mArticleBId;
-	private long mObjectId;
+	private long mConnectionId;
 	private String mLabelA;
 	private String mLabelB;
 	private long mRelationId;
@@ -42,10 +54,36 @@ public class AppacitiveConnection {
 	private Date mUtcDateCreated;
 	private Date mUtcLastModifiedDate;
 	private long mRevision;
-	private HashMap<String, Object> mProperties;
-	private HashMap<String, Object> mAttributes;
+	private Map<String, Object> mProperties;
+	private Map<String, Object> mAttributes;
 	private List<String> mTags;
 
+	/*
+	 * Private Connection
+	 */
+	private AppacitiveConnection() {
+	}
+
+	/**
+	 * Initialize an Connection object of the provided relation type.
+	 * 
+	 * @param relationType
+	 *            The name of the relation. This is specified while creating the
+	 *            schema.
+	 */
+	public AppacitiveConnection(String relationType) {
+		this.mRelationType = relationType;
+	}
+	
+	/**
+	 * Method used to add an attibute to the Connection. Attributes are used to
+	 * store extra information.
+	 * 
+	 * @param key
+	 *            key of the data item to be stored.
+	 * @param value
+	 *            Corresponding value to the key.
+	 */
 	public void addAttribute(String key, Object value) {
 		if (this.mAttributes == null) {
 			this.mAttributes = new HashMap<String, Object>();
@@ -53,249 +91,892 @@ public class AppacitiveConnection {
 		this.mAttributes.put(key, value);
 	}
 
+	/**
+	 * Method used to get an attribute from the AppacitiveObject.
+	 * 
+	 * @param key key of the data item stored.
+	 * @return value Corresponding value to the key.
+	 */
+	public Object getAttribute(String key) {
+		if (this.mAttributes != null) {
+			return this.mAttributes.get(key);
+		}
+		return null;
+	}
+
+	/**
+	 * Method used to add a tag to the Connection.
+	 * 
+	 * @param tag
+	 *            The tag to be added to the Connection.
+	 */
 	public void addTag(String tag) {
 		if (this.mTags == null) {
 			this.mTags = new ArrayList<String>();
 		}
 		this.mTags.add(tag);
 	}
-
-	public String getCreatedBy() {
-		return mCreatedBy;
+	
+	/**
+	 * Returns the list of tags with which object is tagged.
+	 */
+	public List<String> getTags() {
+		return this.mTags;
 	}
 
-	public void setCreatedBy(String createdBy) {
-		this.mCreatedBy = createdBy;
+	/**
+	 * Method used to add an property to the AppacitiveObject. Properties are
+	 * used to store extra information.
+	 * 
+	 * @param key
+	 *            key of the data item to be stored.
+	 * @param value
+	 *            Corresponding value to the key.
+	 */
+	public void addProperty(String key, Object value) {
+		if (this.mProperties == null) {
+			this.mProperties = new HashMap<String, Object>();
+		}
+		this.mProperties.put(key, value);
 	}
 
-	public long getArticleAId() {
-		return mArticleAId;
+	/**
+	 * Method used to get an property from the AppacitiveObject.
+	 * 
+	 * @param key
+	 *            key of the data item stored.
+	 * @return value Corresponding value to the key.
+	 */
+	public Object getProperty(String key) {
+		if (this.mProperties != null) {
+			return this.mProperties.get(key);
+		}
+		return null;
 	}
 
-	public void setArticleAId(long articleAId) {
-		this.mArticleAId = articleAId;
+	public void updateConnectionFields(AppacitiveConnection connection) {
+		this.mConnectionId = connection.mConnectionId;
+		this.mCreatedBy = connection.mCreatedBy;
+		this.mLastModifiedBy = connection.mLastModifiedBy;
+		this.mArticleAId = connection.mArticleAId;
+		this.mArticleBId = connection.mArticleBId;
+		this.mLabelA = connection.mLabelA;
+		this.mLabelB = connection.mLabelB;
+		this.mAttributes = connection.mAttributes;
+		this.mProperties = connection.mProperties;
+		this.mRelationId = connection.mRelationId;
+		this.mRelationType = connection.mRelationType;
+		this.mRevision = connection.mRevision;
+		this.mTags = connection.mTags;
+		this.mUtcDateCreated = connection.mUtcDateCreated;
+		this.mUtcLastModifiedDate = connection.mUtcLastModifiedDate;
 	}
 
-	public long getArticleBId() {
-		return mArticleBId;
-	}
-
-	public void setArticleBId(long articleBId) {
-		this.mArticleBId = articleBId;
-	}
-
-	public long getObjectId() {
-		return mObjectId;
-	}
-
-	public void setObjectId(long objectId) {
-		this.mObjectId = objectId;
-	}
-
-	public String getLabelA() {
-		return mLabelA;
-	}
-
-	public void setLabelA(String labelA) {
-		this.mLabelA = labelA;
-	}
-
-	public String getLabelB() {
-		return mLabelB;
-	}
-
-	public void setLabelB(String labelB) {
-		this.mLabelB = labelB;
-	}
-
-	public long getRelationId() {
-		return mRelationId;
-	}
-
-	public void setRelationId(long relationId) {
-		this.mRelationId = relationId;
-	}
-
-	public String getRelationType() {
-		return mRelationType;
-	}
-
-	public void setRelationType(String relationType) {
-		this.mRelationType = relationType;
-	}
-
-	public String getLastModifiedBy() {
-		return mLastModifiedBy;
-	}
-
-	public void setLastModifiedBy(String lastModifiedBy) {
-		this.mLastModifiedBy = lastModifiedBy;
-	}
-
-	public Date getUtcDateCreated() {
-		return mUtcDateCreated;
-	}
-
-	public void setUtcDateCreated(Date utcDateCreated) {
-		this.mUtcDateCreated = utcDateCreated;
-	}
-
-	public Date getUtcLastModifiedDate() {
-		return mUtcLastModifiedDate;
-	}
-
-	public void setUtcLastModifiedDate(Date utcLastModifiedDate) {
-		this.mUtcLastModifiedDate = utcLastModifiedDate;
-	}
-
-	public long getRevision() {
-		return mRevision;
-	}
-
-	public void setRevision(long revision) {
-		this.mRevision = revision;
-	}
-
-	// create connection
-
+	/**
+	 * Create an Connection between two aricles on the remote server. This
+	 * method requires the articleAId, articleBId, labelA and labelB properties
+	 * to be set.
+	 */
 	public void createConnection() {
-		this.createConnection(null, null, null);
+		this.createConnection(null);
 	}
 
-	public void createConnection(AppacitiveObject object1,
-			AppacitiveObject object2) {
-		this.createConnection(object1, object2, null);
-	}
-
-	public void createConnection(final AppacitiveObject object1,
-			final AppacitiveObject object2,
-			final AppacitiveResponseCallback callback) {
+	/**
+	 * Create an Connection between two articles on the remote server. This
+	 * method requires the articleAId, articleBId, labelA and labelB properties
+	 * to be set.
+	 * 
+	 * @param callback
+	 *            Callback invoked when the create operation is successful or
+	 *            failed.
+	 */
+	public void createConnection(final AppacitiveCallback callback) {
 
 		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> createTask = new BackgroundTask<Void>(null) {
-				AppacitiveError appacitiveError;
+
+		AppacitiveInternalCallback<AppacitiveError> internalCallback = new AppacitiveInternalCallback<AppacitiveError>() {
+
+			@Override
+			public void done(AppacitiveError error) {
+				if (error == null) {
+					callback.onSuccess();
+				} else {
+					callback.onFailure(error);
+				}
+			}
+
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if (callback != null) {
+					callback.onFailure(error);
+				}
+			}
+		};
+
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<AppacitiveError> createTask = new BackgroundTask<AppacitiveError>(internalCallback) {
+				AppacitiveError error;
 
 				@Override
-				public Void run() throws AppacitiveException {
+				public AppacitiveError run() {
 					URL url;
-					JSONObject requestParams = null;
+					String requestParams = null;
+					requestParams = AppacitiveConnection.this.createRequestParams();
 					try {
-						url = new URL(Constants.CONNECTION_URL
-								+ AppacitiveConnection.this.mRelationType);
-						if (object1 != null && object2 != null) {
-							requestParams = AppacitiveConnection.this
-									.createRequestParams(object1, object2);
-						} else if (object1 == null || object2 == null) {
-							requestParams = AppacitiveConnection.this
-									.createRequestParams();
-						}
-
-						HttpURLConnection connection = (HttpURLConnection) url
-								.openConnection();
-						connection
-								.setRequestMethod(AppacitiveRequestMethods.PUT
-										.requestMethod());
-						connection.setRequestProperty("Content-Type",
-								"application/json");
-						connection.setRequestProperty("Content-Length",
-								Integer.toString(((requestParams.toString())
-										.length())));
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
+						url = new URL(Constants.CONNECTION_URL + AppacitiveConnection.this.mRelationType);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.PUT.requestMethod());
+						connection.setRequestProperty("Content-Type", "application/json");
+						connection.setRequestProperty("Content-Length",Integer.toString(((requestParams.toString()).length())));
+						AppacitiveHelper.addHeaders(connection);
 						connection.setDoOutput(true);
+
 						OutputStream os = connection.getOutputStream();
 						os.write((requestParams.toString()).getBytes());
 						os.close();
+
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
-							return null;
+							Log.w("TAG", "Error " + connection.getResponseMessage());
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode());
+							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							if (Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1) {
-								JsonReader jsonReader = new JsonReader(reader);
-								readResponse(jsonReader);
-							} else {
-								BufferedReader bufferedReader = new BufferedReader(
-										reader);
-								StringBuffer buffer = new StringBuffer();
-								String response;
-								while ((response = bufferedReader.readLine()) != null) {
-									buffer.append(response);
-								}
-								JSONObject responseJsonObject;
-								try {
-									responseJsonObject = new JSONObject(
-											buffer.toString());
-									JSONObject statusObject = responseJsonObject
-											.getJSONObject("status");
-									appacitiveError = AppacitiveHelperMethods
-											.checkForErrorInStatus(statusObject);
-									if (appacitiveError == null) {
-										readConnection(responseJsonObject
-												.getJSONObject("connection"));
-									}
-								} catch (JSONException e) {
-									e.printStackTrace();
-								}
-
-							}
+							Reader reader = new InputStreamReader(inputStream);
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveConnection.class, new AppacitiveConnectionTypeAdapter());
+							Gson gson = builder.create();
+							AppacitiveConnectionJsonModel response = gson.fromJson(reader,AppacitiveConnectionJsonModel.class);
 							inputStream.close();
-						}
 
-						if (callback != null) {
-							if (appacitiveError == null) {
-								callback.onSucess();
+							if (!response.mStatus.getStatusCode().equals("200")) {
+								error = response.mStatus;
 							} else {
-								callback.onFailure(appacitiveError);
+								AppacitiveConnection.this.updateConnectionFields(response.mAppacitiveConnection);
 							}
 						}
 					} catch (MalformedURLException e) {
 						e.printStackTrace();
 					} catch (IOException e) {
 						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
 					}
-					return null;
-				}
-
-				private void readResponse(JsonReader jsonReader)
-						throws IOException {
-					jsonReader.beginObject();
-					String name;
-					while (jsonReader.hasNext()) {
-						if (jsonReader.peek() == JsonToken.NULL) {
-							jsonReader.skipValue();
-						}
-						name = jsonReader.nextName();
-						if (name.equals("connection")
-								&& jsonReader.peek() != JsonToken.NULL) {
-							readConnection(jsonReader);
-						} else if (name.equals("status")
-								&& jsonReader.peek() != JsonToken.NULL) {
-							appacitiveError = AppacitiveHelperMethods
-									.checkForErrorInStatus(jsonReader);
-						}
-					}
+					return error;
 				}
 			};
 			createTask.execute();
 		} else {
 			Log.w("Appacitive",
 					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode(8002);
+			if (callback != null) {
+				callback.onFailure(error);
+			}
+		}
+
+	}
+
+	/**
+	 * Creates an Connection between two articles.
+	 * 
+	 * @param objectA
+	 *            The article to create a connection from.
+	 * @param objectB
+	 *            The article to create a connection to.
+	 */
+	public void createConnection(AppacitiveObject objectA, AppacitiveObject objectB) {
+		this.createConnection(objectA, objectB, null);
+	}
+
+	/**
+	 * Creates an Connection between two articles.
+	 * 
+	 * @param objectA
+	 *            The article to create a connection from.
+	 * @param objectB
+	 *            The article to create a connection to.
+	 * @param callback
+	 *            Callback invoked when the create operation is successful or
+	 *            failed.
+	 */
+	public void createConnection(AppacitiveObject objectA, AppacitiveObject objectB, AppacitiveCallback callback) {
+		this.mArticleAId = objectA.getObjectId();
+		this.mLabelA = objectA.getSchemaType();
+		this.mArticleBId = objectB.getObjectId();
+		this.mLabelB = objectB.getSchemaType();
+		this.createConnection(callback);
+	}
+
+	/**
+	 * Deletes the AppacitiveConnection.
+	 */
+	public void deleteConnection() {
+		deleteConnection(null);
+	}
+
+	/**
+	 * Deletes the Connection.
+	 * 
+	 * @param callback
+	 *            Callback invoked when the delete operation is successful or
+	 *            failed.
+	 */
+	public void deleteConnection(final AppacitiveCallback callback) {
+
+		final Appacitive appacitive = Appacitive.getInstance();
+
+		AppacitiveInternalCallback<AppacitiveError> internalCallback = new AppacitiveInternalCallback<AppacitiveError>() {
+
+			@Override
+			public void done(AppacitiveError error) {
+				if (error == null) {
+					callback.onSuccess();
+				} else {
+					callback.onFailure(error);
+				}
+			}
+
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if (callback != null) {
+					callback.onFailure(error);
+				}
+			}
+
+		};
+
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<AppacitiveError> deleteTask = new BackgroundTask<AppacitiveError>(internalCallback) {
+				AppacitiveError error;
+
+				@Override
+				public AppacitiveError run() {
+					URL url;
+					try {
+						String urlString = Constants.CONNECTION_URL + AppacitiveConnection.this.mRelationType + "/"
+								+ AppacitiveConnection.this.mConnectionId;
+						url = new URL(urlString);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.DELETE.requestMethod());
+						AppacitiveHelper.addHeaders(connection);
+
+						InputStream inputStream;
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG", "Error " + connection.getResponseMessage());
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode());
+							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
+						} else {
+							inputStream = connection.getInputStream();
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveConnection.class, new AppacitiveConnectionTypeAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+							AppacitiveError response = gson.fromJson(reader, AppacitiveError.class);
+							inputStream.close();
+							if (!response.getStatusCode().equals("200")) {
+								error = response;
+							}
+						}
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
+					}
+					return error;
+				}
+			};
+			deleteTask.execute();
+		} else {
+			Log.w("Appacitive", "Appacitive Object is uninitialized. " +
+					"Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode(8002);
+			if (callback != null) {
+				callback.onFailure(error);
+			}
+		}
+
+	}
+
+	/**
+	 * Deletes multiple Connection objects which are passed in the list as an
+	 * argument.
+	 * 
+	 * @param connectionsIds
+	 *            List containing connection's id's of existing connections on
+	 *            the remote server.
+	 * @param relationType
+	 *            The type of Connection.
+	 */
+	public static void deleteConnections(ArrayList<String> connectionsIds, String relationType) {
+		deleteConnections(connectionsIds, relationType, null);
+	}
+
+	/**
+	 * Deletes multiple Connection objects which are passed in the list as an
+	 * argument.
+	 * 
+	 * @param connectionsIds
+	 *            List containing connection's id's of existing connections on
+	 *            the remote server.
+	 * @param relationType
+	 *            The type of Connection.
+	 * @param callback
+	 *            Callback invoked when the delete operation is successful or
+	 *            failed.
+	 */
+	public static void deleteConnections(final ArrayList<String> connectionsIds, final String relationType,
+			final AppacitiveCallback callback) {
+
+		final Appacitive appacitive = Appacitive.getInstance();
+
+		AppacitiveInternalCallback<AppacitiveError> internalCallback = new AppacitiveInternalCallback<AppacitiveError>() {
+
+			@Override
+			public void done(AppacitiveError error) {
+				if (error == null) {
+					callback.onSuccess();
+				} else {
+					callback.onFailure(error);
+				}
+			}
+
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if (callback != null) {
+					callback.onFailure(error);
+				}
+			}
+		};
+
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<AppacitiveError> deleteTask = new BackgroundTask<AppacitiveError>(internalCallback) {
+				AppacitiveError error;
+
+				@Override
+				public AppacitiveError run() {
+					URL url;
+					Gson gson = new Gson();
+					HashMap<String, Object> requestMap = new HashMap<String, Object>();
+					requestMap.put("idlist", connectionsIds);
+					String requestJsonString = gson.toJson(requestMap);
+					try {
+						url = new URL(Constants.CONNECTION_URL + relationType + "/bulkdelete");
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.POST.requestMethod());
+						AppacitiveHelper.addHeaders(connection);
+						connection.setRequestProperty("Content-Type","application/json");
+						connection.setRequestProperty("Content-Length",Integer.toString((requestJsonString.length())));
+
+						OutputStream os = connection.getOutputStream();
+						os.write(requestJsonString.getBytes());
+						os.close();
+
+						InputStream inputStream;
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG","Error " + connection.getResponseMessage());
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode());
+							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
+						} else {
+							inputStream = connection.getInputStream();
+							Reader reader = new InputStreamReader(inputStream);
+							AppacitiveError response = gson.fromJson(reader,AppacitiveError.class);
+							inputStream.close();
+							if (!response.mStatusCode.equals("200")) {
+								error = response;
+							}
+						}
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
+					}
+					return error;
+				}
+			};
+			deleteTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode(8002);
+			if (callback != null) {
+				callback.onFailure(error);
+			}
 		}
 	}
 
-	protected JSONObject createRequestParams(AppacitiveObject object1,
-			AppacitiveObject object2) {
+	/**
+	 * Fetch all the properties of the Connection object on which this method is
+	 * invoked.
+	 */
+	public void fetchConnection() {
+		fetchConnection(null);
+	}
 
-		// Create the required JSON over here
+	/**
+	 * Fetch all the properties of the Connection object on which this method is
+	 * invoked.
+	 * 
+	 * @param callback
+	 *            Callback invoked when the fetch operation is successful or
+	 *            failed.
+	 */
+	public void fetchConnection(final AppacitiveCallback callback) {
+
+		final Appacitive appacitive = Appacitive.getInstance();
+
+		AppacitiveInternalCallback<AppacitiveError> internalCallback = new AppacitiveInternalCallback<AppacitiveError>() {
+
+			@Override
+			public void done(AppacitiveError error) {
+				if (error == null) {
+					callback.onSuccess();
+				} else {
+					callback.onFailure(error);
+				}
+			}
+
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if (callback != null) {
+					callback.onFailure(error);
+				}
+			}
+
+		};
+
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<AppacitiveError> fetchTask = new BackgroundTask<AppacitiveError>(internalCallback) {
+				AppacitiveError error;
+
+				@Override
+				public AppacitiveError run() {
+					URL url;
+					try {
+						String urlString = Constants.CONNECTION_URL
+								+ AppacitiveConnection.this.mRelationType + "/" + AppacitiveConnection.this.mConnectionId;
+						url = new URL(urlString);
+
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						AppacitiveHelper.addHeaders(connection);
+						InputStream inputStream;
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG", "Error : " + connection.getResponseMessage());
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode());
+							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
+						} else {
+							inputStream = connection.getInputStream();
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveConnection.class, new AppacitiveConnectionTypeAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+							AppacitiveConnectionJsonModel response = gson.fromJson(reader,AppacitiveConnectionJsonModel.class);
+							inputStream.close();
+
+							if (!response.mStatus.getStatusCode().equals("200")) {
+								error = response.mStatus;
+							} else {
+								AppacitiveConnection.this.updateConnectionFields(response.mAppacitiveConnection);
+							}
+						}
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
+					}
+					return error;
+				}
+			};
+			fetchTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode(8002);
+			if (callback != null) {
+				callback.onFailure(error);
+			}
+		}
+	}
+
+	/**
+	 * Fetches multiple Connections from the remote server.
+	 * 
+	 * @param connectionIds
+	 *            An array of objectIds. Connections with these object id's are
+	 *            fetched.
+	 * @param relationType
+	 *            The name of the relation. Connections of this relation are
+	 *            retrieved.
+	 */
+	public static void fetchConnections(final ArrayList<String> connectionIds,
+			final String relationType) {
+		AppacitiveConnection.fetchConnections(connectionIds, relationType, null);
+	}
+
+	/**
+	 * Fetches multiple Connections from the remote server.
+	 * 
+	 * @param connectionIds
+	 *            An array of connection Id's. Connections with these object
+	 *            id's are fetched.
+	 * @param relationType
+	 *            The name of the relation. Connections of this relation are
+	 *            retrieved.
+	 * @param callback
+	 *            Callback invoked when the fetch operation is successful or
+	 *            failed.
+	 */
+	public static void fetchConnections(final ArrayList<String> connectionIds, final String relationType,
+			final AppacitiveFetchCallback<AppacitiveConnection> callback) {
+
+		if (connectionIds == null) {
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("ConnectionId's list is empty. Pass an list of connection Id's to fetch.");
+			Log.w("TAG", error.getMessage());
+			if (callback != null) {
+				callback.onFailure(error);
+			}
+			return;
+		}
+
+		AppacitiveInternalCallback<AppacitiveConnectionJsonModel> internalCallback = new AppacitiveInternalCallback<AppacitiveConnection.AppacitiveConnectionJsonModel>() {
+
+			@Override
+			public void done(AppacitiveConnectionJsonModel result) {
+				if (result.mStatus.getStatusCode().equals("200")) {
+					callback.onSuccess(result.mAppacitiveConnections, result.mPagingInfo);
+				} else {
+					callback.onFailure(result.mStatus);
+				}
+			}
+
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if (callback != null) {
+					callback.onFailure(error);
+				}
+			}
+
+		};
+
+		final Appacitive appacitive = Appacitive.getInstance();
+
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<AppacitiveConnectionJsonModel> fetchTask = new BackgroundTask<AppacitiveConnectionJsonModel>(
+					internalCallback) {
+
+				AppacitiveConnectionJsonModel response;
+				AppacitiveError error;
+
+				@Override
+				public AppacitiveConnectionJsonModel run() {
+					URL url;
+					StringBuffer queryParams = null;
+					for (String id : connectionIds) {
+						if (queryParams == null) {
+							queryParams = new StringBuffer();
+							queryParams.append(id);
+						} else {
+							queryParams.append("," + id);
+						}
+					}
+					try {
+						url = new URL(Constants.CONNECTION_URL + relationType + "/multiget" + "/" + queryParams);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						AppacitiveHelper.addHeaders(connection);
+
+						InputStream inputStream;
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG", "Error " + connection.getResponseMessage());
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode());
+							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
+						} else {
+							inputStream = connection.getInputStream();
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveConnection.class, new AppacitiveConnectionTypeAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+							response = gson.fromJson(reader, AppacitiveConnectionJsonModel.class);
+							inputStream.close();
+						}
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
+					}
+					return response;
+				}
+			};
+			fetchTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode(8002);
+			if (callback != null) {
+				callback.onFailure(error);
+			}
+		}
+	}
+
+	/**
+	 * Search for all Connections of a particular relation type.
+	 * 
+	 * @param relationType
+	 *            The relation type that the connections should belong to.
+	 */
+	public static void searchAllConnections(String relationType) {
+		searchConnections(relationType, null, null);
+	}
+
+	/**
+	 * Search for all Connections of a particular relation type.
+	 * 
+	 * @param relationType
+	 *            The relation type that the connections should belong to.
+	 * @param callback
+	 *            Callback invoked when the search operation is successful or
+	 *            failed.
+	 */
+	public static void searchAllConnections(String relationType, AppacitiveFetchCallback<AppacitiveConnection> callback) {
+		searchConnections(relationType, null, callback);
+	}
+
+	/**
+	 * Searches for Connections and filters the result according to the query
+	 * provided.
+	 * 
+	 * @param relationType
+	 *            The relation type that the connections should belong to.
+	 * @param query
+	 *            SQL kind of query to search for specific objects. For more
+	 *            info http://appacitive.com
+	 * @param callback
+	 *            Callback invoked when the search operation is successful or
+	 *            failed.
+	 */
+	public static void searchConnections(final String relationType, final String query,
+			final AppacitiveFetchCallback<AppacitiveConnection> callback) {
+
+		final Appacitive appacitive = Appacitive.getInstance();
+
+		AppacitiveInternalCallback<AppacitiveConnectionJsonModel> internalCallback = new AppacitiveInternalCallback<AppacitiveConnectionJsonModel>() {
+
+			@Override
+			public void done(AppacitiveConnectionJsonModel result) {
+				if (result.mStatus.getStatusCode().equals("200")) {
+					callback.onSuccess(result.mAppacitiveConnections, result.mPagingInfo);
+				} else {
+					callback.onFailure(result.mStatus);
+				}
+			}
+
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if (callback != null) {
+					callback.onFailure(error);
+				}
+			}
+		};
+
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<AppacitiveConnectionJsonModel> searchTask = new BackgroundTask<AppacitiveConnectionJsonModel>(
+					internalCallback) {
+
+				@Override
+				public AppacitiveConnectionJsonModel run() {
+					AppacitiveError error;
+					AppacitiveConnectionJsonModel response = null;
+					URL url = null;
+					
+					String urlString = Constants.CONNECTION_URL + relationType + "/find/all";
+					if (query != null) {
+						urlString = urlString + "?query=" + query;
+					}
+					try {
+						url = new URL(urlString);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						AppacitiveHelper.addHeaders(connection);
+
+						InputStream inputStream;
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG","Error " + connection.getResponseMessage());
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode());
+							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
+						} else {
+							inputStream = connection.getInputStream();
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveConnection.class, new AppacitiveConnectionTypeAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+							response = gson.fromJson(reader,AppacitiveConnectionJsonModel.class);
+							inputStream.close();
+						}
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
+					}
+					return response;
+				}
+			};
+			searchTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode(8002);
+			if (callback != null) {
+				callback.onFailure(error);
+			}
+		}
+	}
+
+	/**
+	 * @see searchForConnectedArticles(String relationType, long articleId,
+	 *      AppacitiveFetchCallback callback)
+	 * @param relationType
+	 * @param articleId
+	 */
+	public static void searchForConnectedArticles(final String relationType,
+			final long articleId) {
+		searchForConnectedArticles(relationType, articleId, null);
+	}
+
+	/**
+	 * Searches for all the connections from the specified articleId, and
+	 * returns the list of all the connections of the specified relationType
+	 * from that article along with the oher endpoints article.
+	 * 
+	 * @param relationType
+	 *            The name of the relation. Connections of this relation are
+	 *            retrieved.
+	 * @param articleId
+	 *            The aritcleId of any one endpoint.
+	 * @param callback
+	 *            Callback invoked when the search operation is successful or
+	 *            failed.
+	 */
+	public static void searchForConnectedArticles(final String relationType, final long articleId, 
+			final AppacitiveFetchCallback<AppacitiveObject> callback) {
+
+		final Appacitive appacitive = Appacitive.getInstance();
+
+		AppacitiveInternalCallback<AppacitiveConnectionJsonModelForConnectedArticles> internalCallback = new AppacitiveInternalCallback<AppacitiveConnectionJsonModelForConnectedArticles>() {
+			
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if (callback != null) {
+					callback.onFailure(error);
+				}
+			}
+			
+			@Override
+			public void done(AppacitiveConnectionJsonModelForConnectedArticles result) {
+				if (result.mStatus.getStatusCode().equals("200")) {
+					callback.onSuccess(result.mAppacitiveObjects, result.mPagingInfo);
+				} else {
+					callback.onFailure(result.mStatus);
+				}
+			}
+		};
+		if (appacitive != null && appacitive.getSessionId() != null) {
+			BackgroundTask<AppacitiveConnectionJsonModelForConnectedArticles> searchTask = new BackgroundTask<AppacitiveConnectionJsonModelForConnectedArticles>(internalCallback) {
+				@Override
+				public AppacitiveConnectionJsonModelForConnectedArticles run() {
+					URL url = null;
+					AppacitiveError error;
+					AppacitiveConnectionJsonModelForConnectedArticles response = null;
+					String urlString = Constants.CONNECTION_URL + relationType + "/" + articleId + "/find";
+					try {
+						url = new URL(urlString);
+						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+						connection.setRequestMethod(AppacitiveRequestMethods.GET.requestMethod());
+						AppacitiveHelper.addHeaders(connection);
+
+						InputStream inputStream;
+						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+							Log.w("TAG", "Error " + connection.getResponseMessage());
+							error = new AppacitiveError();
+							error.setStatusCode(connection.getResponseCode());
+							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
+						} else {
+							inputStream = connection.getInputStream();
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveObject.class, new AppacitiveConnectedArticleTypeAdapter());
+							Gson gson = builder.create();
+							Reader reader = new InputStreamReader(inputStream);
+					        response = gson.fromJson(reader, AppacitiveConnectionJsonModelForConnectedArticles.class);
+					        inputStream.close();
+						}
+					} catch (MalformedURLException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
+					}
+					return response;
+				}
+			};
+			searchTask.execute();
+		} else {
+			Log.w("Appacitive",
+					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			AppacitiveError error = new AppacitiveError();
+			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			error.setStatusCode(8002);
+			if (callback != null) {
+				callback.onFailure(error);
+			}
+		}
+	}
+
+
+	private String createRequestParams() {
 		HashMap<String, Object> requestParams = new HashMap<String, Object>();
 		if (this.mRelationType != null) {
 			requestParams.put("__relationtype", this.mRelationType);
@@ -307,332 +988,243 @@ public class AppacitiveConnection {
 			requestParams.put("__tags", this.mTags);
 		}
 		HashMap<String, Object> endPointA = new HashMap<String, Object>();
-		// endPointA.put("label", this.mLabelA);
-		// endPointA.put("articleid", this.mArticleAId+"");
-		endPointA.put("label", object1.getSchemaType());
-		endPointA.put("articleid", object1.getObjectId() + "");
+		endPointA.put("label", this.mLabelA);
+		endPointA.put("articleid", this.mArticleAId + "");
 		HashMap<String, Object> endPointB = new HashMap<String, Object>();
-		// endPointB.put("label", this.mLabelB);
-		// endPointB.put("articleid", this.mArticleBId+"");
-		endPointB.put("label", object2.getSchemaType());
-		endPointB.put("articleid", object2.getObjectId() + "");
+		endPointB.put("label", this.mLabelB);
+		endPointB.put("articleid", this.mArticleBId + "");
 		requestParams.put("__endpointa", endPointA);
 		requestParams.put("__endpointb", endPointB);
-		JSONObject object = null;
-
-		try {
-			object = AppacitiveUtility.toJSON(requestParams);
-			Log.d("TAG", "The request Object ");
-			Log.d("TAG", "" + object.toString());
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		return object;
+		Gson gson = new Gson();
+		String requestJsonString = gson.toJson(requestParams);
+		return requestJsonString;
 	}
 
-	public void searchConnectionWithRelationTypeAndQueryString(
-			String relationType, final String query,
-			final AppacitiveResponseCallback callback) {
+	/**
+	 * @return The user name who created this Connection.
+	 */
+
+	public String getCreatedBy() {
+		return mCreatedBy;
+	}
+
+	/**
+	 * Sets createdBy
+	 * 
+	 * @param createdBy
+	 */
+
+	public void setCreatedBy(String createdBy) {
+		this.mCreatedBy = createdBy;
+	}
+
+	/**
+	 * @return Returns articleA id.
+	 */
+	public long getArticleAId() {
+		return mArticleAId;
+	}
+
+	/**
+	 * Sets the article A id from where to create a connection from.
+	 * 
+	 * @param articleAId
+	 *            .
+	 */
+	public void setArticleAId(long articleAId) {
+		this.mArticleAId = articleAId;
+	}
+
+	/**
+	 * @return Returns articleB id.
+	 */
+	public long getArticleBId() {
+		return mArticleBId;
+	}
+
+	/**
+	 * Sets the article B id to which the Connection is to be created.
+	 * 
+	 * @param articleBId
+	 *            .
+	 */
+	public void setArticleBId(long articleBId) {
+		this.mArticleBId = articleBId;
+	}
+
+	/**
+	 * @return Returns the connection Id.
+	 */
+	public long getConnectionId() {
+		return mConnectionId;
+	}
+
+	/**
+	 * Sets the connection ID.
+	 * 
+	 * @param objectId
+	 *            .
+	 */
+	public void setConnectionId(long objectId) {
+		this.mConnectionId = objectId;
+	}
+
+	/**
+	 * Returns schema of article A.
+	 * 
+	 * @return Returns schema of article A.
+	 */
+	public String getLabelA() {
+		return mLabelA;
+	}
+
+	/**
+	 * Sets the schema of article A.
+	 * 
+	 * @param labelA
+	 *            schema name.
+	 */
+	public void setLabelA(String labelA) {
+		this.mLabelA = labelA;
+	}
+
+	/**
+	 * Returns schema of article B.
+	 * 
+	 * @return Returns schema of article B.
+	 */
+	public String getLabelB() {
+		return mLabelB;
+	}
+
+	/**
+	 * Sets the schema of article B.
+	 * 
+	 * @param labelB
+	 *            schema name.
+	 */
+	public void setLabelB(String labelB) {
+		this.mLabelB = labelB;
+	}
+
+	/**
+	 * Return the relationdID.
+	 * 
+	 * @return relation ID.
+	 */
+	public long getRelationId() {
+		return mRelationId;
+	}
+
+	/**
+	 * Sets the relation ID
+	 * 
+	 * @param relationId
+	 */
+	public void setRelationId(long relationId) {
+		this.mRelationId = relationId;
+	}
+
+	/**
+	 * Returns the relation type.
+	 * 
+	 * @return The relation type.
+	 */
+	public String getRelationType() {
+		return mRelationType;
+	}
+
+	/**
+	 * Sets the relation type
+	 * 
+	 * @param relation
+	 *            type
+	 */
+	public void setRelationType(String relationType) {
 		this.mRelationType = relationType;
-		final Appacitive appacitive = Appacitive.getInstance();
-		if (appacitive != null) {
-			BackgroundTask<Void> searchTask = new BackgroundTask<Void>(null) {
-				AppacitiveError appacitiveError;
-				AppacitivePagingInfo pagingInfo;
-
-				@Override
-				public Void run() throws AppacitiveException {
-					URL url = null;
-					try {
-						if (query == null) {
-							url = new URL(Constants.CONNECTION_URL
-									+ AppacitiveConnection.this.mRelationType
-									+ "/find/all");
-						} else if (query != null) {
-							// append to request params
-							url = new URL(Constants.CONNECTION_URL
-									+ AppacitiveConnection.this.mRelationType
-									+ "/find/all" + "&%@" + query);
-						}
-						HttpURLConnection connection = (HttpURLConnection) url
-								.openConnection();
-						connection
-								.setRequestMethod(AppacitiveRequestMethods.GET
-										.requestMethod());
-						connection.setRequestProperty("Appacitive-Session",
-								appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",
-								appacitive.getEnvironment());
-						InputStream inputStream;
-
-						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.w("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
-							return null;
-						} else {
-							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(
-									inputStream);
-							if (Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1) {
-								readResponse(reader);
-							} else { // versions before gingerbread
-								BufferedReader bufferedReader = new BufferedReader(
-										reader);
-								StringBuffer buffer = new StringBuffer();
-								String response;
-								while ((response = bufferedReader.readLine()) != null) {
-									buffer.append(response);
-								}
-								Log.d("TAG", "The object is ");
-								Log.d("TAG", " " + buffer.toString());
-								JSONObject responseJsonObject;
-								try {
-									responseJsonObject = new JSONObject(
-											buffer.toString());
-									appacitiveError = AppacitiveHelperMethods
-											.checkForErrorInStatus(responseJsonObject
-													.getJSONObject("status"));
-									if (appacitiveError == null) {
-										readConnections(responseJsonObject
-												.getJSONArray("connections"));
-									}
-								} catch (JSONException e) {
-									e.printStackTrace();
-								}
-							}
-							inputStream.close();
-
-						}
-
-						if (callback != null) {
-							if (appacitiveError == null) {
-								callback.onSucess();
-							} else {
-								callback.onFailure(appacitiveError);
-							}
-						}
-
-					} catch (MalformedURLException e) {
-						e.printStackTrace();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					return null;
-				}
-
-				private void readResponse(InputStreamReader reader)
-						throws IOException {
-					JsonReader jsonReader = new JsonReader(reader);
-					jsonReader.beginObject();
-					String name;
-					while (jsonReader.hasNext()) {
-						if (jsonReader.peek() == null) {
-							jsonReader.skipValue();
-							continue;
-						}
-						name = jsonReader.nextName();
-						if (name.equals("paginginfo")
-								&& jsonReader.peek() != JsonToken.NULL) {
-							pagingInfo = AppacitiveHelperMethods
-									.readPagingInfo(jsonReader);
-						} else if (name.equals("connections")
-								&& jsonReader.peek() != JsonToken.NULL) {
-							readConnections(jsonReader);
-						} else if (name.equals("status")
-								&& jsonReader.peek() != JsonToken.NULL) {
-							appacitiveError = AppacitiveHelperMethods
-									.checkForErrorInStatus(jsonReader);
-						} else {
-							jsonReader.skipValue();
-						}
-					}
-					jsonReader.endObject();
-					jsonReader.close();
-				}
-
-				private void readConnections(JsonReader jsonReader)
-						throws IOException {
-					// TODO Auto-generated method stub
-					List<AppacitiveConnection> connections = new ArrayList<AppacitiveConnection>();
-					jsonReader.beginArray();
-					while (jsonReader.hasNext()) {
-						connections.add(readConnection(jsonReader));
-					}
-					jsonReader.endArray();
-				}
-
-				private void readConnections(JSONArray jsonArray)
-						throws JSONException, IOException {
-					List<AppacitiveConnection> connections = new ArrayList<AppacitiveConnection>();
-					for (int i = 0; i < jsonArray.length(); i++) {
-						JSONObject appacitiveConnectionJsonObject = jsonArray
-								.getJSONObject(i);
-						AppacitiveConnection connection = readConnection(appacitiveConnectionJsonObject);
-						connections.add(connection);
-					}
-				}
-			};
-			searchTask.execute();
-		} else {
-			Log.w("Appacitive",
-					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
-		}
 	}
 
-	public void searchForAllConnectionsWithRelationType(String relationType) {
-		this.searchConnectionWithRelationTypeAndQueryString(relationType, null,
-				null);
+	/**
+	 * Returns the user name who has modified the connection last.
+	 * 
+	 * @return Last modified date.
+	 */
+	public String getLastModifiedBy() {
+		return mLastModifiedBy;
 	}
 
-	private AppacitiveConnection readConnection(JSONObject jsonObject)
-			throws IOException, JSONException {
-		this.mObjectId = jsonObject.getLong("__id");
-		this.mRelationType = jsonObject.getString("__relationtype");
-		this.mRelationId = jsonObject.getLong("__relationid");
-		this.mCreatedBy = jsonObject.getString("__createdby");
-		this.mLastModifiedBy = jsonObject.getString("__lastmodifiedby");
-		// TODO : Uncomment the mRevision number and after the revision number
-		// is provided by the service in the response
-		// this.mRevision = jsonObject.getLong("__revision");
-		JSONObject endPointA = jsonObject.getJSONObject("__endpointa");
-		this.mLabelA = endPointA.getString("label");
-		this.mArticleAId = Long.parseLong(endPointA.getString("articleid"));
-		JSONObject endPointB = jsonObject.getJSONObject("__endpointb");
-		this.mLabelA = endPointB.getString("label");
-		this.mArticleAId = Long.parseLong(endPointB.getString("articleid"));
-
-		try {
-			this.mUtcDateCreated = fromJsonResponse(jsonObject
-					.getString("__utcdatecreated"));
-			this.mUtcLastModifiedDate = fromJsonResponse(jsonObject
-					.getString("__utclastupdateddate"));
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		return this;
+	/**
+	 * Sets the user name who has modified the connection last
+	 * 
+	 * @param Last
+	 *            modified date
+	 */
+	public void setLastModifiedBy(String lastModifiedBy) {
+		this.mLastModifiedBy = lastModifiedBy;
 	}
 
-	protected AppacitiveConnection readConnection(JsonReader jsonReader)
-			throws IOException {
-		AppacitiveConnection connection = new AppacitiveConnection();
-		jsonReader.beginObject();
-		while (jsonReader.hasNext()) {
-			if (jsonReader.peek() == JsonToken.NULL) {
-				jsonReader.skipValue();
-			}
-			String name = jsonReader.nextName();
-			if (name.equals("__id") && jsonReader.peek() != JsonToken.NULL) {
-				connection.mObjectId = jsonReader.nextLong();
-			} else if (name.equals("__relationtype")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mRelationType = jsonReader.nextString();
-			} else if (name.equals("__relationid")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mRelationId = jsonReader.nextLong();
-			} else if (name.equals("__revision")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mRevision = jsonReader.nextLong();
-			} else if (name.equals("__createdby")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mCreatedBy = jsonReader.nextString();
-			} else if (name.equals("__lastmodifiedby")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mLastModifiedBy = jsonReader.nextString();
-			} else if (name.equals("__utcdatecreated")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				try {
-					connection.mUtcDateCreated = fromJsonResponse(jsonReader
-							.nextString());
-				} catch (ParseException e) {
-					e.printStackTrace();
-				}
-			} else if (name.equals("__utclastupdateddate")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				try {
-					connection.mUtcLastModifiedDate = fromJsonResponse(jsonReader
-							.nextString());
-				} catch (ParseException e) {
-					e.printStackTrace();
-				}
-			} else if (name.equals("__endpointa")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				readEndPointA(connection, jsonReader);
-			} else if (name.equals("__endpointb")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				readEndPointB(connection, jsonReader);
-			} else {
-				jsonReader.skipValue();
-			}
-		}
-		jsonReader.endObject();
-		return connection;
+	/**
+	 * Returns the date on which the article is created.
+	 * 
+	 * @return Date of creation of the connection.
+	 */
+	public Date getUtcDateCreated() {
+		return mUtcDateCreated;
 	}
 
-	private void readEndPointA(AppacitiveConnection connection,
-			JsonReader jsonReader) throws IOException {
-		jsonReader.beginObject();
-		while (jsonReader.hasNext()) {
-			if (jsonReader.peek() == JsonToken.NULL) {
-				jsonReader.skipValue();
-			}
-			String name = jsonReader.nextName();
-			if (jsonReader.equals("label")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mLabelA = jsonReader.nextString();
-			} else if (jsonReader.equals("articleid")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mArticleAId = jsonReader.nextLong();
-			} else {
-				jsonReader.skipValue();
-			}
-		}
-		jsonReader.endObject();
+	/**
+	 * Sets the date on which article is created
+	 * 
+	 * @param Date
+	 *            of creation of the connection.
+	 */
+	public void setUtcDateCreated(Date UtcDateCreated) {
+		this.mUtcDateCreated = UtcDateCreated;
 	}
 
-	private void readEndPointB(AppacitiveConnection connection,
-			JsonReader jsonReader) throws IOException {
-		jsonReader.beginObject();
-		while (jsonReader.hasNext()) {
-			if (jsonReader.peek() == JsonToken.NULL) {
-				jsonReader.skipValue();
-			}
-			String name = jsonReader.nextName();
-			if (jsonReader.equals("label")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mLabelB = jsonReader.nextString();
-			} else if (jsonReader.equals("articleid")
-					&& jsonReader.peek() != JsonToken.NULL) {
-				connection.mArticleBId = jsonReader.nextLong();
-			} else {
-				jsonReader.skipValue();
-			}
-		}
-		jsonReader.endObject();
+	/**
+	 * Returns the date on which the article is modified last.
+	 * 
+	 * @return Last Date of modification of the connection.
+	 */
+	public Date getUtcLastModifiedDate() {
+		return mUtcLastModifiedDate;
 	}
 
-	protected JSONObject createRequestParams() {
-		AppacitiveObject object1 = new AppacitiveObject();
-		object1.setSchemaType(this.mLabelA);
-		object1.setObjectId(this.mArticleAId);
-		AppacitiveObject object2 = new AppacitiveObject();
-		object2.setSchemaType(this.mLabelB);
-		object2.setObjectId(this.mArticleBId);
-		return this.createRequestParams(object1, object2);
+	/**
+	 * Sets the date on which the article is modified last.
+	 * 
+	 * @param Last
+	 *            Date of modification of the connection.
+	 */
+	public void setUtcLastModifiedDate(Date UtcLastModifiedDate) {
+		this.mUtcLastModifiedDate = UtcLastModifiedDate;
 	}
 
-	private Date fromJsonResponse(String dateString) throws ParseException {
-		SimpleDateFormat formatter = new SimpleDateFormat(
-				"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-		Date date = formatter.parse(dateString);
-		return date;
+	/**
+	 * Returns the revision number.
+	 * 
+	 * @return Returns the revision number.
+	 */
+	public long getRevision() {
+		return mRevision;
+	}
+
+	/**
+	 * Sets the revision number.
+	 * 
+	 * @param Returns
+	 *            the revision number.
+	 */
+	public void setRevision(long revision) {
+		this.mRevision = revision;
 	}
 
 	@Override
 	public String toString() {
 		return "AppacitiveConnection [mCreatedBy=" + mCreatedBy
 				+ ", mArticleAId=" + mArticleAId + ", mArticleBId="
-				+ mArticleBId + ", mObjectId=" + mObjectId + ", mLabelA="
+				+ mArticleBId + ", mObjectId=" + mConnectionId + ", mLabelA="
 				+ mLabelA + ", mLabelB=" + mLabelB + ", mRelationId="
 				+ mRelationId + ", mRelationType=" + mRelationType
 				+ ", mLastModifiedBy=" + mLastModifiedBy + ", mUtcDateCreated="
@@ -640,5 +1232,207 @@ public class AppacitiveConnection {
 				+ mUtcLastModifiedDate + ", mRevision=" + mRevision
 				+ ", mProperties=" + mProperties + ", mAttributes="
 				+ mAttributes + ", mTags=" + mTags + "]";
+	}
+
+	private class AppacitiveConnectionJsonModel {
+
+		@SerializedName("connections")
+		public ArrayList<AppacitiveConnection> mAppacitiveConnections;
+
+		@SerializedName("connection")
+		public AppacitiveConnection mAppacitiveConnection;
+
+		@SerializedName("status")
+		public AppacitiveError mStatus;
+
+		@SerializedName("paginginfo")
+		public AppacitivePagingInfo mPagingInfo;
+	}
+
+	private class AppacitiveConnectionJsonModelForConnectedArticles {
+		@SerializedName("connections")
+		public ArrayList<AppacitiveObject> mAppacitiveObjects;
+		
+		@SerializedName("status")
+		public AppacitiveError mStatus;
+		
+		@SerializedName("paginginfo")
+		public AppacitivePagingInfo mPagingInfo;
+	}
+
+
+	private static class AppacitiveConnectionTypeAdapter extends
+			TypeAdapter<AppacitiveConnection> {
+
+		@Override
+		public AppacitiveConnection read(JsonReader jsonReader)
+				throws IOException {
+			AppacitiveConnection appacitiveConnection = new AppacitiveConnection();
+			if (jsonReader.peek() == JsonToken.NULL) {
+				jsonReader.skipValue();
+				return null;
+			} else {
+				jsonReader.beginObject();
+			}
+
+			while (jsonReader.hasNext()) {
+				if (jsonReader.peek() == JsonToken.NULL) {
+					jsonReader.skipValue();
+				}
+				String name = jsonReader.nextName();
+				if (name.equals("__id") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveConnection.setConnectionId(jsonReader.nextLong());
+				} else if (name.equals("__relationtype") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveConnection.setRelationType(jsonReader.nextString());
+				} else if (name.equals("__relationid") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveConnection.setRelationId(jsonReader.nextLong());
+				} else if (name.equals("__revision")
+						&& jsonReader.peek() != JsonToken.NULL) {
+					appacitiveConnection.setRevision(jsonReader.nextLong());
+				} else if (name.equals("__endpointa")
+						&& jsonReader.peek() != JsonToken.NULL) {
+					getEndpoint(jsonReader, appacitiveConnection, name);
+				} else if (name.equals("__endpointb")
+						&& jsonReader.peek() != JsonToken.NULL) {
+					getEndpoint(jsonReader, appacitiveConnection, name);
+				} else if (name.equals("__createdby")
+						&& jsonReader.peek() != JsonToken.NULL) {
+					appacitiveConnection.setCreatedBy(jsonReader.nextString());
+				} else if (name.equals("__lastmodifiedby") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveConnection.setLastModifiedBy(jsonReader.nextString());
+				} else if (name.equals("__tags") && jsonReader.peek() != JsonToken.NULL) {
+					getTags(jsonReader, appacitiveConnection);
+				} else if (name.equals("__utcdatecreated")
+						&& jsonReader.peek() != JsonToken.NULL) {
+					appacitiveConnection.setUtcDateCreated(fromJsonResponse(jsonReader.nextString()));
+				} else if (name.equals("__utclastupdateddate")
+						&& jsonReader.peek() != JsonToken.NULL) {
+					appacitiveConnection.setUtcLastModifiedDate(fromJsonResponse(jsonReader.nextString()));
+				} else if (name.equals("__attributes")
+						&& jsonReader.peek() != JsonToken.NULL) {
+					getAttributes(jsonReader, appacitiveConnection);
+				} else if (!name.equals("")) {
+					appacitiveConnection.addProperty(name, jsonReader.nextString());
+				} else {
+					jsonReader.skipValue();
+				}
+			}
+			jsonReader.endObject();
+			return appacitiveConnection;
+		}
+
+		private void getEndpoint(JsonReader jsonReader,
+				AppacitiveConnection appacitiveConnection, String name)
+				throws IOException {
+			jsonReader.beginObject();
+			while (jsonReader.hasNext()) {
+				if (jsonReader.peek() == JsonToken.NULL) {
+					jsonReader.skipValue();
+				}
+				if (name.equals("__endpointa")) {
+					String nameForEndpoint = jsonReader.nextName();
+					if (nameForEndpoint.equals("label") && jsonReader.peek() != JsonToken.NULL) {
+						appacitiveConnection.setLabelA(jsonReader.nextString());
+					} else if (nameForEndpoint.equals("articleid") && jsonReader.peek() != JsonToken.NULL) {
+						appacitiveConnection.setArticleAId(Long.parseLong(jsonReader.nextString()));
+					} else if (nameForEndpoint.equals("article") && jsonReader.peek() != JsonToken.NULL) {
+						jsonReader.skipValue();
+					} else {
+						jsonReader.skipValue();
+					}
+				} else if (name.equals("__endpointb")) {
+					String nameForEndpoint = jsonReader.nextName();
+					if (nameForEndpoint.equals("label")
+							&& jsonReader.peek() != JsonToken.NULL) {
+						appacitiveConnection.setLabelB(jsonReader.nextString());
+					} else if (nameForEndpoint.equals("articleid") && jsonReader.peek() != JsonToken.NULL) {
+						appacitiveConnection.setArticleBId(Long.parseLong(jsonReader.nextString()));
+					}
+				}
+			}
+			jsonReader.endObject();
+		}
+
+		private void getTags(JsonReader jsonReader,
+				AppacitiveConnection appacitiveConnection) throws IOException {
+			jsonReader.beginArray();
+			while (jsonReader.hasNext()) {
+				appacitiveConnection.addTag(jsonReader.nextString());
+			}
+			jsonReader.endArray();
+		}
+
+		private void getAttributes(JsonReader reader,
+				AppacitiveConnection appacitiveConnection) throws IOException {
+			reader.beginObject();
+			while (reader.hasNext()) {
+				if (reader.peek() == JsonToken.NULL) {
+					reader.skipValue();
+				}
+				String key = reader.nextName();
+				String value = reader.nextString();
+				appacitiveConnection.addAttribute(key, value);
+			}
+			reader.endObject();
+		}
+
+		private Date fromJsonResponse(String dateString) {
+			SimpleDateFormat formatter = new SimpleDateFormat(
+					"yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'");
+			Date date = null;
+			try {
+				date = formatter.parse(dateString);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+			return date;
+		}
+
+		@Override
+		public void write(JsonWriter arg0, AppacitiveConnection arg1) throws IOException {
+		}
+	}
+
+	private static class AppacitiveConnectedArticleTypeAdapter extends TypeAdapter<AppacitiveObject> {
+
+		@Override
+		public AppacitiveObject read(JsonReader jsonReader) throws IOException {
+			AppacitiveObject appacitiveObject = null;
+			if (jsonReader.peek() == JsonToken.NULL) {
+				jsonReader.skipValue();
+				return null;
+			} else {
+				jsonReader.beginObject();
+			}
+			while (jsonReader.hasNext()) {
+				if (jsonReader.peek() == JsonToken.NULL) {
+					jsonReader.skipValue();
+				}
+				String name = jsonReader.nextName();
+				if (name.equals("__endpointa") || name.equals("__endpointb") && jsonReader.peek() != JsonToken.NULL) {
+					jsonReader.beginObject();
+					while (jsonReader.hasNext()) {
+						if (jsonReader.peek() == JsonToken.NULL) {
+							jsonReader.skipValue();
+						}
+						String nameForEndPoint = jsonReader.nextName();
+						if (nameForEndPoint.equals("article")) {
+							appacitiveObject = AppacitiveHelper.readArticleFromStream(jsonReader);
+						} else {
+							jsonReader.skipValue();
+						}
+					}
+					jsonReader.endObject();
+				} else {
+					jsonReader.skipValue();
+				}
+			}
+			jsonReader.endObject();
+			return appacitiveObject;
+		}
+
+		@Override
+		public void write(JsonWriter writter, AppacitiveObject object) throws IOException {
+		}
 	}
 }
