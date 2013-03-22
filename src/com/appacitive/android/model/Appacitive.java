@@ -1,48 +1,62 @@
 package com.appacitive.android.model;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.lang.reflect.Type;
+import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import android.annotation.SuppressLint;
-import android.app.Application;
-import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.appacitive.android.callbacks.AppacitiveCallback;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
 
 /**
  * An Appacitive object is the entry point to use the Appacitive SDK. All the
  * network requests are queued up here and sent to the remote service.
  * 
- * @author Sandeep Dhull
- * 
  */
-	
+
+
 public class Appacitive {
 
+	/*
+	 *  Session Id of the currently active session 
+	 */
+	@SerializedName("sessionkey")
 	private String mSessionId;
-	private AppacitiveCallback mCallBack;
-	private boolean enableDebugForEachRequest;
-	private boolean enableLiveEnvironment;
-	private static Appacitive mSharedInstance;
-	private Context mContext;
 	
-	private Appacitive(Application context, String apiKey, AppacitiveCallback callback) {
-		// Context is required in case we are sending the broadcast in future.
-		this.mContext = context;
+	/*
+	 * Appacitive Callback, to notify the user the progress of session initialization.
+	 */
+	private AppacitiveCallback mCallBack;
+	
+	private boolean enableDebugForEachRequest;
+	
+	/*
+	 * Controls the current appacitive working environment.
+	 */
+	private boolean enableLiveEnvironment;
+	
+	/*
+	 * Singleton instance of Appacitive.
+	 */
+	private static Appacitive mSharedInstance;
+	
+	/*
+	 * Private Constructor to enforce singleton pattern.
+	 */
+	private Appacitive(String apiKey, AppacitiveCallback callback) {
 		this.mCallBack = callback;
 		this.enableLiveEnvironment = false;
 		fetchSession(apiKey);
@@ -50,34 +64,59 @@ public class Appacitive {
 
 	/**
 	 * Creates a shared object.
-	 * 
-	 * @param context
-	 *            Handle To the context.
 	 * @param apiKey
 	 *            Application API Key.
 	 * @param callback
 	 *            Callback to the caller indication whether session is properly
 	 *            initialized or failed.
 	 */
-	@SuppressLint("NewApi")
-	public static synchronized void initializeAppacitive(Application context, String apiKey,
-			AppacitiveCallback callback) {
-		if (apiKey != null && !apiKey.isEmpty() && mSharedInstance == null) {
+	
+	public static void initializeAppacitive(String apiKey, AppacitiveCallback callback) {
+		if (apiKey != null && !TextUtils.isEmpty(apiKey) && mSharedInstance == null) {
 			synchronized (Appacitive.class) {
-				if (apiKey != null && !apiKey.isEmpty() && mSharedInstance == null) {
-					mSharedInstance = new Appacitive(context, apiKey, callback);
-				}				
+				if (apiKey != null && !TextUtils.isEmpty(apiKey) && mSharedInstance == null) {
+					mSharedInstance = new Appacitive(apiKey, callback);
+				}
+			}
+		} else {
+			AppacitiveError error = new AppacitiveError();
+			error.setStatusCode(Constants.APPACITIVE_ERROR_INVALID_API);
+			error.setMessage("api key can't be null or empty.");
+			if(callback != null) {
+				callback.onFailure(error);
 			}
 		}
 	}
 
 	private void fetchSession(final String apiKey) {
-		BackgroundTask<Void> backgroundTask = new BackgroundTask<Void>() {
-			AppacitiveError error;
-			Map<String, Object> responseMap = null;
 
+		AppacitiveInternalCallback<AppacitiveJsonModel> callback = new AppacitiveInternalCallback<AppacitiveJsonModel>() {
+			
 			@Override
-			public Void run() {
+			public void done(AppacitiveJsonModel results) {
+				if (!results.error.getStatusCode().equals("200")) {
+					mCallBack.onFailure(results.error);
+				} else {
+					Appacitive.this.mSessionId = results.mAppacitiveObject.getSessionId();
+					mCallBack.onSuccess();
+				}
+			}
+			
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if(mCallBack != null) {
+					mCallBack.onFailure(error);
+				}
+			}
+		};
+		
+		BackgroundTask<AppacitiveJsonModel> backgroundTask = new BackgroundTask<AppacitiveJsonModel>(callback) {
+			@Override
+			public AppacitiveJsonModel run() {
+				
+				AppacitiveJsonModel response = null;
+				AppacitiveError error;
+				
 				Map<String, Object> requestMap = new HashMap<String, Object>();
 				requestMap.put("apikey", apiKey);
 				requestMap.put("isnonsliding", false);
@@ -85,17 +124,12 @@ public class Appacitive {
 				requestMap.put("usagecount", -1);
 				Gson gson = new Gson();
 				String requestParams = gson.toJson(requestMap);
-
 				try {
 					URL url = new URL(Constants.SESSION_URL);
-					HttpURLConnection connection = (HttpURLConnection) url
-							.openConnection();
-					connection.setRequestMethod(AppacitiveRequestMethods.PUT
-							.requestMethod());
-					connection.setRequestProperty("Content-Type",
-							"application/json");
-					connection.setRequestProperty("Content-Length", Integer
-							.toString(((requestParams.toString()).length())));
+					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					connection.setRequestMethod(AppacitiveRequestMethods.PUT.requestMethod());
+					connection.setRequestProperty("Content-Type","application/json");
+					connection.setRequestProperty("Content-Length", Integer.toString(((requestParams.toString()).length())));
 					connection.setDoOutput(true);
 
 					OutputStream os = connection.getOutputStream();
@@ -104,63 +138,35 @@ public class Appacitive {
 
 					InputStream inputStream;
 					if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-						Log.w("TAG",
-								"Request failed "
-										+ connection.getResponseMessage());
+						Log.w("TAG", "Error : " + connection.getResponseMessage());
 						error = new AppacitiveError();
 						error.setStatusCode(connection.getResponseCode());
 						error.setMessage(connection.getResponseMessage());
+						this.setNetworkError(error);
 					} else {
 						inputStream = connection.getInputStream();
-						InputStreamReader reader = new InputStreamReader(
-								inputStream);
-						BufferedReader bufferedReader = new BufferedReader(
-								reader);
-						StringBuffer buffer = new StringBuffer();
-						String response;
-						while ((response = bufferedReader.readLine()) != null) {
-							buffer.append(response);
-						}
-
-						Type typeOfClass = new TypeToken<Map<String, Object>>() {
-						}.getType();
-						responseMap = gson.fromJson(buffer.toString(),
-								typeOfClass);
-						error = AppacitiveHelper
-								.checkForErrorInStatus(responseMap);
-						if (error == null) {
-							readSessionKey(responseMap);
-						}
-						inputStream.close();
-					}
-					if(mCallBack != null) {
-						if (error != null) {
-							mCallBack.onFailure(error);
-						} else {
-							mCallBack.onSuccess();
-						}
+						GsonBuilder builder = new GsonBuilder();
+						Reader reader = new InputStreamReader(inputStream);
+						gson = builder.create();
+				        response = gson.fromJson(reader, AppacitiveJsonModel.class);
+				        inputStream.close();
 					}
 				} catch (MalformedURLException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
 					e.printStackTrace();
+					error = new AppacitiveError();
+					error.setMessage(e.getMessage());
+					this.setNetworkError(error);
 				}
-				return null;
-			}
-
-			@SuppressWarnings("unchecked")
-			private void readSessionKey(Map<String, Object> response) {
-				Map<String, String> sessionMap = (Map<String, String>) response
-						.get("session");
-				Appacitive.this.mSessionId = (String) sessionMap
-						.get("sessionkey");
+				return response;
 			}
 		};
 		backgroundTask.execute();
 	}
 
 	/**
-	 * Returns the singleton instance of Appacitive. If instance is null, then
+	 * Returns the singleton instance of Appacitive. If instance is null, that means the
 	 * session is not initialized.
 	 * 
 	 * @return Returns the shared instance of Appacitive.
@@ -170,8 +176,8 @@ public class Appacitive {
 	}
 
 	/**
-	 * End the currently active session. Any further request to appacitive wont
-	 * be successful afterwards.
+	 * End the currently active session. Any further request to appacitive won't
+	 * be successful after ending session.
 	 */
 	public void endSession() {
 		mSharedInstance.mSessionId = null;
@@ -206,7 +212,7 @@ public class Appacitive {
 
 	/**
 	 * @return Return the current environment. True indicates that current
-	 *         environment is live, and false the current environment is
+	 *         environment is live, and false means the current environment is
 	 *         sandbox.
 	 */
 	public boolean isEnableLiveEnvironment() {
@@ -237,10 +243,16 @@ public class Appacitive {
 		return "sandbox";
 	}
 
-	/**
-	 * Returns the application context
+	/*
+	 * Helper inner class for parsing response to get the session key. 
+	 *
 	 */
-	public Context getContext() {
-		return mContext;
+	private class AppacitiveJsonModel {
+		@SerializedName("session")
+		public Appacitive mAppacitiveObject;
+		
+		@SerializedName("status")
+		public AppacitiveError error;
 	}
+	
 }

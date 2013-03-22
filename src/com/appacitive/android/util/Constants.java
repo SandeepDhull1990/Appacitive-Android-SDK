@@ -9,6 +9,6 @@ public class Constants {
 	public static final String FILE_DOWNLOAD_URL = "https://apis.appacitive.com/file/download";
 	public static final String USER_URL = "https://apis.appacitive.com/user/";
 	
-	public static final int APPACITIVE_ERROR_INVALID_API = 8002;
+	public static final int APPACITIVE_ERROR_INVALID_API= 8002;
 	
 }

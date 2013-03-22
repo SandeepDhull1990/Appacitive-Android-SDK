@@ -2,23 +2,32 @@ package com.appacitive.android.model;
 
 import android.os.AsyncTask;
 
-//TODO : Rethink this class Design
-abstract class BackgroundTask<T> extends AsyncTask<Void, Void, Void> {
 
+abstract class BackgroundTask<T> extends AsyncTask<Void, Void, T> {
+	
+	private AppacitiveInternalCallback<T> mCallback;
+	private AppacitiveError mNetworkError;
+	
+	public BackgroundTask(AppacitiveInternalCallback<T> callback) {
+		this.mCallback = callback;
+	}
+	
 	public abstract T run();
 
-	protected Void doInBackground(Void... params) {
-		run();
-		return null;
+	protected T doInBackground(Void... params) {
+		return run();
 	}
 
-	void executeInThisThread() {
-		doInBackground(new Void[0]);
-		onPostExecute(null);
+	@Override
+	protected void onPostExecute(T result) {
+		if(mNetworkError == null) {
+			mCallback.done(result);
+		} else {
+			mCallback.onFailed(mNetworkError);
+		}
 	}
-
-	static int executeTask(BackgroundTask<?> task) {
-		task.execute(new Void[0]);
-		return 0;
+	
+	public void setNetworkError(AppacitiveError error) {
+		this.mNetworkError = error;
 	}
 }

@@ -29,7 +29,7 @@ public class AppacitiveQuery {
 	}
 
 	/**
-	 * Helper method to generate an equal to query string.
+	 * Helper method to generate an equal query string.
 	 * @param propertyName
 	 *            name of the property to search for
 	 * @param propertyValue
@@ -83,6 +83,24 @@ public class AppacitiveQuery {
 		}
 		return null;
 	}
+	/**
+	 * Helper method to generate a greater than equal to query string. 
+	 * 
+	 * @param propertyName
+	 *            name of the property to search for
+	 * @param propertyValue
+	 *            value that the property should be greater than.
+	 * @return Query String.
+	 */
+	public static String queryForGreaterThanEqualToCondition(String propertyName,
+			String propertyValue) {
+		if (propertyName != null && propertyValue != null) {
+			String query = String.format("*%s>='%s'", propertyName,
+					propertyValue);
+			return query;
+		}
+		return null;
+	}
 
 	/**
 	 * Helper method to generate a less than query string. 
@@ -97,6 +115,24 @@ public class AppacitiveQuery {
 			String propertyValue) {
 		if (propertyName != null && propertyValue != null) {
 			String query = String.format("*%s<'%s'", propertyName,
+					propertyValue);
+			return query;
+		}
+		return null;
+	}
+	/**
+	 * Helper method to generate a less than equal to query string. 
+	 * 
+	 * @param propertyName
+	 *            name of the property to search for.
+	 * @param propertyValue
+	 *            value that the property should be greater than.
+	 * @return Query String.
+	 */	
+	public static String queryForLessThanEqualToCondition(String propertyName,
+			String propertyValue) {
+		if (propertyName != null && propertyValue != null) {
+			String query = String.format("*%s<='%s'", propertyName,
 					propertyValue);
 			return query;
 		}
@@ -131,11 +167,10 @@ public class AppacitiveQuery {
 	 * @param metrics the distance either in km or miles.
 	 * @return Query String.
 	 */
-	public static String queryStringForGeocodeProperty(String propertyName,
-			double latitude, double longitude, int radius,
+	public static String queryStringForGeocodeProperty(String propertyName, double latitude, double longitude, int radius,
 			AppacitiveDistanceMetrics metrics) {
-		String query = "*" + propertyName + " within_circle " + latitude + ","
-				+ longitude + "," + radius + " " + metrics.toString();
+		String query = "*" + propertyName + " within_circle " + latitude + "," 
+			+ longitude + "," + radius + " " + metrics.toString();
 		return query;
 	}
 
@@ -164,8 +199,7 @@ public class AppacitiveQuery {
 	 * @param tags an array of tags to search for.
 	 * @return Query String.
 	 */
-	public static String queryStringForSearchWithOneOrMoreTags(
-			ArrayList<String> tags) {
+	public static String queryStringForSearchWithOneOrMoreTags(ArrayList<String> tags) {
 		if (tags == null) {
 			return null;
 		}
@@ -197,4 +231,30 @@ public class AppacitiveQuery {
 		return query.toString();
 	}
 
+	 /**
+	  * Helper method to generate a AND query string.
+	  * @param queries - list of queries.
+	  */
+	 
+	 public static String generateANDQueryStringForQueries(ArrayList<String> queries) {
+		 return generateQueryStringForQueries(queries, "and");
+	 }
+
+	 public static String generateORQueryStringForQueries(ArrayList<String> queries) {
+		 return generateQueryStringForQueries(queries, "or");
+	 }
+	 
+	private static String generateQueryStringForQueries(ArrayList<String> queries, String operator) {
+		StringBuffer query = null;
+		
+		for (String q : queries) {
+			if (query == null) {
+				query = new StringBuffer();
+				query.append(q);
+			}else {
+				query.append(String.format("%s %s", operator, q));
+			}
+		}
+		return String.format("(%s)", query.toString());
+	}
 }

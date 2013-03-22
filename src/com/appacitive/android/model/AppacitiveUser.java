@@ -1,19 +1,20 @@
 package com.appacitive.android.model;
 
-import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.lang.reflect.Type;
+import java.io.Reader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.TimeZone;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import com.appacitive.android.callbacks.AppacitiveAuthenticationCallback;
@@ -21,7 +22,12 @@ import com.appacitive.android.callbacks.AppacitiveSignUpCallback;
 import com.appacitive.android.util.AppacitiveRequestMethods;
 import com.appacitive.android.util.Constants;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 
 /**
  * AppacitiveUser represent your app's users whose management API's are provided
@@ -31,14 +37,16 @@ import com.google.gson.reflect.TypeToken;
  * 
  * @author Sandeep Dhull
  */
-
 public class AppacitiveUser extends AppacitiveObject {
 
 	public String mUserToken;
 	public static AppacitiveUser currentUser;
+	private boolean mLoggedInWithFacebook;
+	private boolean mLoggedInWithTwitter;
 
 	private AppacitiveUser() {
 		super("user");
+		
 	}
 
 	/**
@@ -72,6 +80,68 @@ public class AppacitiveUser extends AppacitiveObject {
 		authenticate(userName, password, null);
 	}
 
+	
+	/**
+	 * Returns the user id of the current user.
+	 * @return user id.
+	 */
+	public long getUserId() {
+		return this.mObjectId;
+	}
+	
+	/**
+	 * Returns the user name of the current user.
+	 * @return user name.
+	 */
+	public String getUserName() {
+		return (String)this.getProperty("username");
+	}
+	
+	/**
+	 * Returns the user's first name. 
+	 * @return first name of the user.
+	 * @throws NullPointerException
+	 */
+	public String getFirstName() {
+		return (String)this.getProperty("firstname");
+	}
+	
+	/**
+	 * Returns the user's last name.
+	 * @return last name of the user.
+	 * @throws NullPointerException
+	 */
+	public String getLastName() {
+		return (String)this.getProperty("lastname");
+	}
+	
+	/**
+	 * Returns the birth date of the user.
+	 * @return The birth date of the user.
+	 * @throws NullPointerException
+	 */
+	public String getBirthdate() {
+		return (String)this.getProperty("birthdate");
+	}
+	
+	/**
+	 * Returns the phone number of the user.
+	 * @return user phone number.
+	 * @throws NullPointerException
+	 */
+	public String getPhoneNumber() {
+		return (String)this.getProperty("phone");
+	}
+	
+	/**
+	 * Returns the location of the user.
+	 * @return user's location.
+	 * @throws NullPointerException
+	 */
+	public String getLocation() {
+		return (String)this.getProperty("location");
+	}
+	
 	/**
 	 * Authenticate a user using username and password.
 	 * 
@@ -83,18 +153,39 @@ public class AppacitiveUser extends AppacitiveObject {
 	 *            callback invoked when the authentication is successful or
 	 *            failed.
 	 */
-	public static void authenticate(final String userName,
-			final String password,
-			final AppacitiveAuthenticationCallback callback) {
+	public static void authenticate(final String userName, final String password, final AppacitiveAuthenticationCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
+		
+		AppacitiveInternalCallback<AppacitiveUserJsonModel> internalCallback = new AppacitiveInternalCallback<AppacitiveUserJsonModel>() {
+			
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if(callback != null) {
+					callback.onFailure(error);
+				}
+			}
+			
+			@Override
+			public void done(AppacitiveUserJsonModel result) {
+				if(callback != null) {
+					if(!result.mStatus.getStatusCode().equals("200")) {
+						callback.onFailure(result.mStatus);
+					} else {
+						AppacitiveUser.currentUser = result.user;
+						AppacitiveUser.currentUser.mUserToken = result.mToken;
+						callback.onSuccess();
+					}
+				}
+			}
+		};
+		
 		if (appacitive != null && appacitive.getSessionId() != null) {
-			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>() {
-				Map<String, Object> responseMap = null;
-				AppacitiveError error;
-
+			BackgroundTask<AppacitiveUserJsonModel> autenticateTask = new BackgroundTask<AppacitiveUserJsonModel>(internalCallback) {
 				@Override
-				public Void run() {
-
+				public AppacitiveUserJsonModel run() {
+					
+					AppacitiveUserJsonModel response = null;
+					AppacitiveError error;
 					HashMap<String, String> requestMap = new HashMap<String, String>();
 					requestMap.put("username", userName);
 					requestMap.put("password", password);
@@ -107,10 +198,9 @@ public class AppacitiveUser extends AppacitiveObject {
 						URL url = new URL(urlString);
 						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 						connection.setRequestMethod(AppacitiveRequestMethods.POST.requestMethod());
-						connection.setRequestProperty("Content-Type","application/json");
-						connection.setRequestProperty("Content-Length",Integer.toString(requestParams.length()));
-						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+						connection.setRequestProperty("Content-Type", "application/json");
+						connection.setRequestProperty("Content-Length", Integer.toString(requestParams.length()));
+						AppacitiveHelper.addHeaders(connection);
 						connection.setDoOutput(true);
 
 						OutputStream os = connection.getOutputStream();
@@ -119,51 +209,33 @@ public class AppacitiveUser extends AppacitiveObject {
 
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.w("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.w("TAG", "Error : " + connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(inputStream);
-							BufferedReader bufferedReader = new BufferedReader(reader);
-
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
-							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-
-							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
-							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
-								AppacitiveUser.currentUser = user;
-							}
-							inputStream.close();
+							Reader reader = new InputStreamReader(inputStream);
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveUser.class, new AppacitiveUserTypeAdapter());
+							gson = builder.create();
+							response = gson.fromJson(reader, AppacitiveUserJsonModel.class);
 						}
-						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
-							}
-						}
-					} catch (Exception e) {
+					} catch (MalformedURLException e) {
 						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
 					}
-					return null;
+					return response;
 				}
 			};
 			autenticateTask.execute();
 		} else {
-			Log.w("Appacitive",
-					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			Log.w("Appacitive","Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			error.setStatusCode(8002);
@@ -189,20 +261,44 @@ public class AppacitiveUser extends AppacitiveObject {
 	 * @param userAccessToken
 	 *            facebook user access token.
 	 * @param callback
-	 *            callback invoked when the authentication is successful or
-	 *            failed.
+	 *            callback invoked when the authentication is successful or failed.
 	 */
-	public static void authenticateWithFacebook(final String userAccessToken,
-			final AppacitiveAuthenticationCallback callback) {
+	public static void authenticateWithFacebook(final String userAccessToken, final AppacitiveAuthenticationCallback callback) {
 		final Appacitive appacitive = Appacitive.getInstance();
+		
+		AppacitiveInternalCallback<AppacitiveUserJsonModel> internalCallback = new AppacitiveInternalCallback<AppacitiveUserJsonModel>() {
+			
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if(callback != null) {
+					callback.onFailure(error);
+				}
+			}
+			
+			@Override
+			public void done(AppacitiveUserJsonModel result) {
+				if(callback != null) {
+					if(!result.mStatus.getStatusCode().equals("200")) {
+						callback.onFailure(result.mStatus);
+					} else {
+						AppacitiveUser.currentUser = result.user;
+						AppacitiveUser.currentUser.mUserToken = result.mToken;
+						AppacitiveUser.currentUser.setLoggedInWithFacebook(true);
+						callback.onSuccess();
+					}
+				}
+			}
+		};
+		
 		if (appacitive != null && appacitive.getSessionId() != null) {
-			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>() {
-				AppacitiveError error = null;
-				Map<String, Object> responseMap = null;
+			BackgroundTask<AppacitiveUserJsonModel> autenticateTask = new BackgroundTask<AppacitiveUserJsonModel>(internalCallback) {
 
 				@Override
-				public Void run() {
+				public AppacitiveUserJsonModel run() {
 
+					AppacitiveError error;
+					AppacitiveUserJsonModel response = null;
+					
 					String urlString = Constants.USER_URL + "authenticate";
 					HashMap<String, Object> requestMap = new HashMap<String, Object>();
 					requestMap.put("type", "facebook");
@@ -216,58 +312,43 @@ public class AppacitiveUser extends AppacitiveObject {
 						connection.setRequestMethod(AppacitiveRequestMethods.POST.requestMethod());
 						connection.setRequestProperty("Content-Type","application/json");
 						connection.setRequestProperty("Content-Length",Integer.toString(requestParams.length()));
-						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+						AppacitiveHelper.addHeaders(connection);
 						connection.setDoOutput(true);
-						
+
 						OutputStream os = connection.getOutputStream();
 						os.write((requestParams.toString()).getBytes());
 						os.close();
+						
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.d("TAG", "Error " + connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(inputStream);
-							BufferedReader bufferedReader = new BufferedReader(reader);
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
-							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
-
-							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
-								AppacitiveUser.currentUser = user;
-							}
+							Reader reader = new InputStreamReader(inputStream);
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveUser.class, new AppacitiveUserTypeAdapter());
+							gson = builder.create();
+							response = gson.fromJson(reader, AppacitiveUserJsonModel.class);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
-							}
-						}
-					} catch (Exception e) {
+					} catch (MalformedURLException e) {
 						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
 					}
-					return null;
+					return response;
 				}
 			};
 			autenticateTask.execute();
 		} else {
-			Log.w("Appacitive",
-					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			Log.w("Appacitive", "Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			error.setStatusCode(8002);
@@ -289,8 +370,7 @@ public class AppacitiveUser extends AppacitiveObject {
 	 * @param consumerSecret
 	 *            Twitter consumer secret key.
 	 */
-	public static void authenticateWithTwitter(String oauthToken,
-			String oauthSecret, String consumerKey, String consumerSecret) {
+	public static void authenticateWithTwitter(String oauthToken, String oauthSecret, String consumerKey, String consumerSecret) {
 		authenticateWithTwitter(oauthToken, oauthSecret, consumerKey,
 				consumerSecret, null);
 	}
@@ -310,35 +390,60 @@ public class AppacitiveUser extends AppacitiveObject {
 	 *            callback invoked when the authentication is successful or
 	 *            failed.
 	 */
-	public static void authenticateWithTwitter(final String oauthToken,
-			final String oauthSecret, final String consumerKey,
-			final String consumerSecret,
-			final AppacitiveAuthenticationCallback callback) {
+	public static void authenticateWithTwitter(final String oauthToken, final String oauthSecret, final String consumerKey,
+			final String consumerSecret, final AppacitiveAuthenticationCallback callback) {
+		
 		final Appacitive appacitive = Appacitive.getInstance();
+		
+		AppacitiveInternalCallback<AppacitiveUserJsonModel> internalCallback = new AppacitiveInternalCallback<AppacitiveUserJsonModel>() {
+			
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if(callback != null) {
+					callback.onFailure(error);
+				}
+			}
+			
+			@Override
+			public void done(AppacitiveUserJsonModel result) {
+				if(callback != null) {
+					if(!result.mStatus.getStatusCode().equals("200")) {
+						callback.onFailure(result.mStatus);
+					} else {
+						AppacitiveUser.currentUser = result.user;
+						AppacitiveUser.currentUser.mUserToken = result.mToken;
+						AppacitiveUser.currentUser.setLoggedInWithTwitter(true);
+						callback.onSuccess();
+					}
+				}
+			}
+		};
+		
 		if (appacitive != null && appacitive.getSessionId() != null) {
-			BackgroundTask<Void> autenticateTask = new BackgroundTask<Void>() {
-				AppacitiveError error;
-				Map<String, Object> responseMap = null;
+			BackgroundTask<AppacitiveUserJsonModel> autenticateTask = new BackgroundTask<AppacitiveUserJsonModel>(internalCallback) {
 
 				@Override
-				public Void run() {
-
+				public AppacitiveUserJsonModel run() {
+					AppacitiveError error;
+					AppacitiveUserJsonModel response = null;
+					
 					String urlString = Constants.USER_URL + "authenticate";
 					HashMap<String, Object> requestMap = new HashMap<String, Object>();
 					requestMap.put("type", "twitter");
 					requestMap.put("createnew", true);
 					requestMap.put("oauthtoken", oauthToken);
 					requestMap.put("oauthtokensecret", oauthSecret);
+					requestMap.put("consumerKey", consumerKey);
+					requestMap.put("consumerSecret", consumerSecret);
 					Gson gson = new Gson();
 					String requestParams = gson.toJson(requestMap);
 					try {
 						URL url = new URL(urlString);
 						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 						connection.setRequestMethod(AppacitiveRequestMethods.POST.requestMethod());
-						connection.setRequestProperty("Content-Type","application/json");
-						connection.setRequestProperty("Content-Length",Integer.toString(requestParams.length()));
-						connection.setRequestProperty("Appacitive-Session",appacitive.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",appacitive.getEnvironment());
+						connection.setRequestProperty("Content-Type", "application/json");
+						connection.setRequestProperty("Content-Length", Integer.toString(requestParams.length()));
+						AppacitiveHelper.addHeaders(connection);
 						connection.setDoOutput(true);
 
 						OutputStream os = connection.getOutputStream();
@@ -347,42 +452,29 @@ public class AppacitiveUser extends AppacitiveObject {
 
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.d("TAG", "Error : " + connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(inputStream);
-							BufferedReader bufferedReader = new BufferedReader(reader);
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
-							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
-							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
-								AppacitiveUser.currentUser = user;
-							}
+							Reader reader = new InputStreamReader(inputStream);
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveUser.class, new AppacitiveUserTypeAdapter());
+							gson = builder.create();
+							response = gson.fromJson(reader, AppacitiveUserJsonModel.class);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								callback.onSuccess();
-							} else {
-								callback.onFailure(error);
-							}
-						}
-					} catch (Exception e) {
+					} catch (MalformedURLException e) {
 						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
 					}
-					return null;
+					return response;
 				}
 			};
 			autenticateTask.execute();
@@ -406,18 +498,39 @@ public class AppacitiveUser extends AppacitiveObject {
 	 * @param callback
 	 *            callback invoked when the signup is successful or failed.
 	 */
-	public static void createUser(final AppacitiveUserDetail userDetails,
-			final AppacitiveSignUpCallback callback) {
+	public static void createUser(final AppacitiveUserDetail userDetails, final AppacitiveSignUpCallback callback) {
 
 		final Appacitive sharedObject = Appacitive.getInstance();
+		
+		AppacitiveInternalCallback<AppacitiveUserJsonModel> internalCallback = new AppacitiveInternalCallback<AppacitiveUserJsonModel>() {
+
+			@Override
+			public void done(AppacitiveUserJsonModel result) {
+				if(callback != null) {
+					if(result != null && result.mStatus.getStatusCode().equals("200")) {
+						callback.onSuccess(result.user);
+					} else {
+						callback.onFailure(result.mStatus);
+					}
+				}
+			}
+
+			@Override
+			public void onFailed(AppacitiveError error) {
+				if(callback != null) {
+					callback.onFailure(error);
+				}
+			}
+		};
+		
 		if (sharedObject != null && sharedObject.getSessionId() != null) {
 
-			BackgroundTask<Void> createTask = new BackgroundTask<Void>() {
-				AppacitiveError error;
-				Map<String, Object> responseMap = null;
-
+			BackgroundTask<AppacitiveUserJsonModel> createTask = new BackgroundTask<AppacitiveUserJsonModel>(internalCallback) {
+				
 				@Override
-				public Void run() {
+				public AppacitiveUserJsonModel run() {
+					AppacitiveUserJsonModel response = null;
+					AppacitiveError error;
 
 					String urlString = Constants.USER_URL + "create";
 					String requestParams = userDetails.createRequestParams();
@@ -425,10 +538,9 @@ public class AppacitiveUser extends AppacitiveObject {
 						URL url = new URL(urlString);
 						HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 						connection.setRequestMethod(AppacitiveRequestMethods.PUT.requestMethod());
-						connection.setRequestProperty("Content-Type","application/json");
-						connection.setRequestProperty("Content-Length",Integer.toString(requestParams.length()));
-						connection.setRequestProperty("Appacitive-Session",sharedObject.getSessionId());
-						connection.setRequestProperty("Appacitive-Environment",sharedObject.getEnvironment());
+						connection.setRequestProperty("Content-Type", "application/json");
+						connection.setRequestProperty("Content-Length", Integer.toString(requestParams.length()));
+						AppacitiveHelper.addHeaders(connection);
 						connection.setDoOutput(true);
 
 						OutputStream os = connection.getOutputStream();
@@ -437,46 +549,34 @@ public class AppacitiveUser extends AppacitiveObject {
 
 						InputStream inputStream;
 						if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-							Log.d("TAG",
-									"Request failed "
-											+ connection.getResponseMessage());
+							Log.d("TAG", "Error : " + connection.getResponseMessage());
 							error = new AppacitiveError();
 							error.setStatusCode(connection.getResponseCode());
 							error.setMessage(connection.getResponseMessage());
+							this.setNetworkError(error);
 						} else {
 							inputStream = connection.getInputStream();
-							InputStreamReader reader = new InputStreamReader(inputStream);
-							BufferedReader bufferedReader = new BufferedReader(reader);
-							StringBuffer buffer = new StringBuffer();
-							String response;
-							while ((response = bufferedReader.readLine()) != null) {
-								buffer.append(response);
-							}
-							Gson gson = new Gson();
-							Type typeOfClass = new TypeToken<Map<String, Object>>() {}.getType();
-							responseMap = gson.fromJson(buffer.toString(),typeOfClass);
-							error = AppacitiveHelper.checkForErrorInStatus(responseMap);
+							Reader reader = new InputStreamReader(inputStream);
+							GsonBuilder builder = new GsonBuilder();
+							builder.registerTypeAdapter(AppacitiveUser.class, new AppacitiveUserTypeAdapter());
+							Gson gson = builder.create();
+							response = gson.fromJson(reader, AppacitiveUserJsonModel.class);
 							inputStream.close();
 						}
-						if (callback != null) {
-							if (error == null) {
-								AppacitiveUser user = new AppacitiveUser();
-								user.setNewPropertyValue(responseMap);
-								callback.onSuccess(user);
-							} else {
-								callback.onFailure(error);
-							}
-						}
-					} catch (Exception e) {
+					} catch (MalformedURLException e) {
 						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+						error = new AppacitiveError();
+						error.setMessage(e.getMessage());
+						this.setNetworkError(error);
 					}
-					return null;
+					return response;
 				}
 			};
 			createTask.execute();
 		} else {
-			Log.w("Appacitive",
-					"Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
+			Log.w("Appacitive", "Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			AppacitiveError error = new AppacitiveError();
 			error.setMessage("Appacitive Object is uninitialized. Initilaze the appacitive object first with proper api key");
 			error.setStatusCode(8002);
@@ -486,37 +586,6 @@ public class AppacitiveUser extends AppacitiveObject {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private void setNewPropertyValue(Map<String, Object> map) {
-		Map<String, Object> userMap = (Map<String, Object>) map.get("user");
-		this.mObjectId = new Long((String) userMap.get("__id"));
-		this.mSchemaId = new Long((String) userMap.get("__schemaid"));
-		this.mCreatedBy = (String) userMap.get("__createdby");
-		this.mLastModifiedBy = (String) userMap.get("__lastmodifiedby");
-		this.mRevision = new Long((String) userMap.get("__revision"));
-		try {
-			this.mUTCDateCreated = fromResponse((String) userMap
-					.get("__utcdatecreated"));
-			this.mUTCLastUpdatedDate = fromResponse((String) userMap
-					.get("__utclastupdateddate"));
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		this.mAttributes = (Map<String, Object>) userMap.get("__attributes");
-		this.mTags = (List<String>) userMap.get("__tags");
-		this.mProperties = AppacitiveHelper.getProperties(userMap);
-		if (map.containsKey("token")) {
-			this.mUserToken = (String) map.get("token");
-		}
-	}
-
-	private Date fromResponse(String dateString) throws ParseException {
-		SimpleDateFormat formatter = new SimpleDateFormat(
-				"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-		Date date = formatter.parse(dateString);
-		return date;
-	}
-
 	/**
 	 * Returns the string representation of the object.
 	 * 
@@ -524,7 +593,119 @@ public class AppacitiveUser extends AppacitiveObject {
 	 */
 	@Override
 	public String toString() {
-		return "AppacitiveUser [mUserToken=" + mUserToken + "]"
-				+ super.toString();
+		return "AppacitiveUser [mUserToken=" + mUserToken + "]" + super.toString();
+	}
+
+	public boolean isLoggedInWithFacebook() {
+		return mLoggedInWithFacebook;
+	}
+
+	private void setLoggedInWithFacebook(boolean mLoggedInWithFacebook) {
+		this.mLoggedInWithFacebook = mLoggedInWithFacebook;
+	}
+
+	public boolean isLoggedInWithTwitter() {
+		return mLoggedInWithTwitter;
+	}
+
+	private void setLoggedInWithTwitter(boolean mLoggedInWithTwitter) {
+		this.mLoggedInWithTwitter = mLoggedInWithTwitter;
+	}
+
+	private static class AppacitiveUserTypeAdapter extends TypeAdapter<AppacitiveUser> {
+
+		@Override
+		public AppacitiveUser read(JsonReader jsonReader) throws IOException {
+			AppacitiveUser appacitiveUser = new AppacitiveUser();
+			if (jsonReader.peek() == JsonToken.NULL) {
+				jsonReader.skipValue();
+				return null;
+			} else {
+				jsonReader.beginObject();
+			}
+
+			while (jsonReader.hasNext()) {
+				if (jsonReader.peek() == JsonToken.NULL) {
+					jsonReader.skipValue();
+				}
+
+				String name = jsonReader.nextName();
+
+				if (name.equals("__id") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveUser.setObjectId(jsonReader.nextLong());
+				} else if (name.equals("__schematype") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveUser.setSchemaType(jsonReader.nextString());
+				} else if (name.equals("__schemaid") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveUser.setSchemaId(jsonReader.nextLong());
+				} else if (name.equals("__revision") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveUser.setRevision(jsonReader.nextLong());
+				} else if (name.equals("__createdby") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveUser.setCreatedBy(jsonReader.nextString());
+				} else if (name.equals("__lastmodifiedby") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveUser.setLastModifiedBy(jsonReader.nextString());
+				} else if (name.equals("__tags") && jsonReader.peek() != JsonToken.NULL) {
+					fetchTags(jsonReader, appacitiveUser);
+				} else if (name.equals("__utcdatecreated") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveUser.setUTCDateCreated(fromJsonResponse(jsonReader.nextString()));
+				} else if (name.equals("__utclastupdateddate") && jsonReader.peek() != JsonToken.NULL) {
+					appacitiveUser.setUTCLastUpdatedDate(fromJsonResponse(jsonReader.nextString()));
+				} else if (name.equals("__attributes") && jsonReader.peek() != JsonToken.NULL) {
+					fetchAttributes(jsonReader, appacitiveUser);
+				} else if (!name.equals("") && !name.startsWith("__")) {
+					appacitiveUser.addProperty(name, jsonReader.nextString());
+				} else {
+					jsonReader.skipValue();
+				}
+			}
+			jsonReader.endObject();
+			return appacitiveUser;
+		}
+
+		private void fetchTags(JsonReader jsonReader, AppacitiveUser appacitiveUser) throws IOException {
+			jsonReader.beginArray();
+			while (jsonReader.hasNext()) {
+				appacitiveUser.addTag(jsonReader.nextString());
+			}
+			jsonReader.endArray();
+		}
+
+		@SuppressLint("SimpleDateFormat")
+		private Date fromJsonResponse(String dateString) {
+			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'");
+			formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+			Date date = null;
+			try {
+				date = formatter.parse(dateString);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+			return date;
+		}
+
+		private void fetchAttributes(JsonReader reader, AppacitiveUser appacitiveUser) throws IOException {
+			reader.beginObject();
+			while (reader.hasNext()) {
+				if (reader.peek() == JsonToken.NULL) {
+					reader.skipValue();
+				}
+				String key = reader.nextName();
+				String value = reader.nextString();
+				appacitiveUser.addAttribute(key, value);
+			}
+			reader.endObject();
+		}
+
+		@Override
+		public void write(JsonWriter writer, AppacitiveUser user) throws IOException {
+		}
+	}
+
+	public class AppacitiveUserJsonModel {
+		@SerializedName("token")
+		public String mToken;
+		@SerializedName("user")
+		AppacitiveUser user;
+		@SerializedName("status")
+		public AppacitiveError mStatus;
 	}
 }
